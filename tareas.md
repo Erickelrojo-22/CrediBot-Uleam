@@ -5,6 +5,8 @@ Documento consolidado de tareas basado en:
 - `contexto aplicacion/creditbot_desarrollo_tareas_fastapi_supabase.md` (backend FastAPI + Supabase)
 - `contexto aplicacion/creditbot_streamlit_panel_desarrollo.md` (panel administrativo Streamlit)
 
+**Última actualización:** julio 2026 — sincronizado con rama `develop` y despliegue en Render verificado.
+
 ## Leyenda de estados
 
 | Símbolo | Estado |
@@ -18,8 +20,15 @@ Documento consolidado de tareas basado en:
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
 | Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
-| Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **21** | **0** | **8** |
+| Fase 2 — Panel administrativo Streamlit | 8 | 8 | 0 | 0 |
+| **Total** | **29** | **29** | **0** | **0** |
+
+### Estado por rama
+
+| Rama | Contenido |
+|---|---|
+| `main` | Backend completo, despliegue Render, integración Twilio en producción, fix de firma webhook |
+| `develop` | Todo lo anterior + panel Streamlit (`creditbot/dashboard/`) y documentación del panel |
 
 ---
 
@@ -221,11 +230,12 @@ Documento consolidado de tareas basado en:
 ### Tarea 15 — Crear webhook de WhatsApp *(Tarea 14 del doc. backend)*
 
 **Estado:** Hecho
-**Objetivo:** recibir mensajes reales desde WhatsApp Cloud API o sandbox.
+**Objetivo:** recibir mensajes reales desde Twilio WhatsApp Sandbox.
 **Archivos:** `app/api/routes_webhook.py`, `app/schemas/whatsapp.py`
 
-- [x] Crear `GET /webhook/whatsapp` con validación de token (`hub.mode`, `hub.verify_token`, `hub.challenge`)
-- [x] Crear `POST /webhook/whatsapp` para recibir payload de WhatsApp
+- [x] Crear `GET /webhook/whatsapp` para verificar estado del endpoint
+- [x] Crear `POST /webhook/whatsapp` para recibir mensajes de Twilio
+- [x] Validar firma de Twilio en producción (`TWILIO_VALIDATE_SIGNATURE`)
 - [x] Extraer teléfono y mensaje del payload
 - [x] Enviar mensaje al motor conversacional
 - [x] Enviar respuesta usando servicio de WhatsApp
@@ -235,11 +245,11 @@ Documento consolidado de tareas basado en:
 ### Tarea 16 — Crear servicio de envío por WhatsApp *(Tarea 15 del doc. backend)*
 
 **Estado:** Hecho
-**Objetivo:** enviar respuestas al cliente mediante la API de WhatsApp.
+**Objetivo:** enviar respuestas al cliente mediante Twilio Console.
 **Archivos:** `app/services/whatsapp_service.py`
 
-- [x] Configurar URL de WhatsApp Cloud API
-- [x] Enviar token en headers
+- [x] Configurar credenciales Twilio (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`)
+- [x] Configurar número remitente (`TWILIO_WHATSAPP_FROM`)
 - [x] Enviar mensaje de texto (`send_text_message`)
 - [x] Manejar errores de API
 
@@ -275,7 +285,7 @@ Documento consolidado de tareas basado en:
 
 **Estado:** Hecho
 **Objetivo:** validar los componentes principales del backend.
-**Archivos:** `app/tests/test_credit_service.py`, `app/tests/test_validation_service.py`, `app/tests/test_conversation_flow.py`
+**Archivos:** `app/tests/test_credit_service.py`, `app/tests/test_validation_service.py`, `app/tests/test_conversation_flow.py`, `app/tests/test_whatsapp_twilio.py`
 
 - [x] Validar monto correcto
 - [x] Rechazar monto inválido
@@ -292,7 +302,7 @@ Documento consolidado de tareas basado en:
 
 **Estado:** Hecho
 **Objetivo:** dejar instrucciones claras para que cualquier integrante pueda ejecutar el proyecto.
-**Archivos:** `README.md`, `docs/endpoints.md`, `docs/flujo_conversacional.md`
+**Archivos:** `README.md`, `docs/endpoints.md`, `docs/flujo_conversacional.md`, `docs/twilio_setup.md`
 
 - [x] Descripción del proyecto y tecnologías usadas
 - [x] Instrucciones de instalación
@@ -307,130 +317,138 @@ Documento consolidado de tareas basado en:
 ### Tarea 21 — Preparar despliegue *(Tarea 20 del doc. backend)*
 
 **Estado:** Hecho
-**Objetivo:** dejar listo el backend para una demostración en línea (Render, Railway o Fly.io).
+**Objetivo:** dejar listo el backend para una demostración en línea (Render).
+**Archivos:** `Procfile`, `render.yaml`, `docs/despliegue.md`
 
-- [x] Crear archivo de configuración de despliegue si aplica
-- [x] Configurar variables de entorno en la plataforma
-- [x] Verificar endpoint `/health` en producción
-- [x] Configurar URL pública como webhook de WhatsApp (Twilio)
+- [x] Crear archivo de configuración de despliegue (`Procfile`, `render.yaml`)
+- [x] Configurar variables de entorno en Render
+- [x] Verificar endpoint `/health` en producción (`https://credibot-uleam.onrender.com/health`)
+- [x] Configurar URL pública como webhook de WhatsApp en Twilio Sandbox
+- [x] Corregir validación de firma Twilio con payload completo del formulario
 - [x] Probar mensaje real desde WhatsApp
 
 ---
 
 # Fase 2 — Panel administrativo Streamlit
 
+> Implementado en rama `develop`. Requiere `git checkout develop` para acceder al código del panel.
+
 ### Tarea 22 — Crear módulo del dashboard *(Tarea 01 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear una carpeta independiente para el panel administrativo dentro del proyecto.
+**Archivos:** `dashboard/app.py`, `dashboard/pages/`, `dashboard/services/`, `dashboard/components/`
 
-- [ ] Crear carpeta `dashboard`
-- [ ] Crear archivo `app.py`
-- [ ] Crear carpeta `pages`
-- [ ] Crear carpeta `services`
-- [ ] Crear carpeta `components`
-- [ ] Verificar que Streamlit pueda ejecutarse y muestre una pantalla inicial
+- [x] Crear carpeta `dashboard`
+- [x] Crear archivo `app.py`
+- [x] Crear carpeta `pages`
+- [x] Crear carpeta `services`
+- [x] Crear carpeta `components`
+- [x] Verificar que Streamlit pueda ejecutarse y muestre una pantalla inicial
 
 ---
 
 ### Tarea 23 — Configurar conexión de Streamlit con Supabase *(Tarea 02 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** conectar el panel administrativo con Supabase para consultar usuarios y solicitudes.
 **Archivos:** `dashboard/services/supabase_dashboard.py`
 
-- [ ] Instalar `supabase` y `python-dotenv`
-- [ ] Crear archivo `services/supabase_dashboard.py`
-- [ ] Cargar variables de entorno
-- [ ] Crear cliente de Supabase
-- [ ] Crear función para obtener usuarios
-- [ ] Crear función para obtener solicitudes
-- [ ] Probar consulta desde Streamlit
+- [x] Instalar `supabase`, `streamlit` y `pandas` en `requirements.txt`
+- [x] Crear archivo `services/supabase_dashboard.py`
+- [x] Cargar variables de entorno
+- [x] Crear cliente de Supabase
+- [x] Crear función para obtener usuarios
+- [x] Crear función para obtener solicitudes
+- [x] Probar consulta desde Streamlit
 
 ---
 
 ### Tarea 24 — Crear pantalla de dashboard general *(Tarea 03 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear la pantalla principal con indicadores generales del sistema.
 **Archivos:** `dashboard/app.py`
 
-- [ ] Consultar usuarios y solicitudes
-- [ ] Convertir datos a DataFrame
-- [ ] Calcular total de usuarios
-- [ ] Calcular total de solicitudes
-- [ ] Calcular preaprobadas, observadas y no aprobadas
-- [ ] Calcular casos derivados
-- [ ] Mostrar métricas con `st.metric`
-- [ ] Mostrar tabla de solicitudes recientes
+- [x] Consultar usuarios y solicitudes
+- [x] Convertir datos a DataFrame
+- [x] Calcular total de usuarios
+- [x] Calcular total de solicitudes
+- [x] Calcular preaprobadas, observadas y no aprobadas
+- [x] Calcular casos derivados
+- [x] Mostrar métricas con `st.metric`
+- [x] Mostrar tabla de solicitudes recientes
 
 ---
 
 ### Tarea 25 — Crear pantalla de solicitudes *(Tarea 04 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear una página para consultar y filtrar solicitudes de crédito.
 **Archivos:** `dashboard/pages/2_Solicitudes.py`
 
-- [ ] Crear archivo `pages/2_Solicitudes.py`
-- [ ] Consultar solicitudes desde Supabase
-- [ ] Mostrar tabla completa
-- [ ] Agregar filtro por resultado (Todos, preaprobado, observado, no_cumple)
-- [ ] Agregar filtro por derivación (Todos, Derivados, No derivados)
-- [ ] Agregar botón para descargar CSV
+- [x] Crear archivo `pages/2_Solicitudes.py`
+- [x] Consultar solicitudes desde Supabase
+- [x] Mostrar tabla completa
+- [x] Agregar filtro por resultado (Todos, preaprobado, observado, no_cumple)
+- [x] Agregar filtro por derivación (Todos, Derivados, No derivados)
+- [x] Agregar botón para descargar CSV
 
 ---
 
 ### Tarea 26 — Crear pantalla de casos derivados *(Tarea 05 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear una página dedicada a los casos que necesitan atención humana.
 **Archivos:** `dashboard/pages/3_Casos_Derivados.py`
 
-- [ ] Crear archivo `pages/3_Casos_Derivados.py`
-- [ ] Consultar solicitudes derivadas a asesor
-- [ ] Mostrar tabla de casos derivados
-- [ ] Permitir seleccionar un caso
-- [ ] Mostrar detalle del caso seleccionado (cliente, teléfono, monto, plazo, ingreso, resultado)
+- [x] Crear archivo `pages/3_Casos_Derivados.py`
+- [x] Consultar solicitudes derivadas a asesor
+- [x] Mostrar tabla de casos derivados
+- [x] Permitir seleccionar un caso
+- [x] Mostrar detalle del caso seleccionado (cliente, teléfono, monto, plazo, ingreso, resultado)
 
 ---
 
 ### Tarea 27 — Crear pantalla de usuarios *(Tarea 06 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear una página para visualizar los usuarios que han interactuado con CrediBot.
 **Archivos:** `dashboard/pages/4_Usuarios.py`
 
-- [ ] Crear archivo `pages/4_Usuarios.py`
-- [ ] Consultar usuarios desde Supabase
-- [ ] Mostrar nombre, teléfono y fecha de registro
-- [ ] Agregar búsqueda por nombre o teléfono
+- [x] Crear archivo `pages/4_Usuarios.py`
+- [x] Consultar usuarios desde Supabase
+- [x] Mostrar nombre, teléfono y fecha de registro
+- [x] Agregar búsqueda por nombre o teléfono
 
 ---
 
 ### Tarea 28 — Implementar seguridad básica del panel *(Tarea 07 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** proteger el acceso al dashboard administrativo con una contraseña básica para el MVP.
+**Archivos:** `dashboard/components/auth.py`, `.env.example`
 
-- [ ] Crear variable `ADMIN_DASHBOARD_PASSWORD` en `.env`
-- [ ] Crear pantalla de login
-- [ ] Guardar autenticación en `st.session_state`
-- [ ] Evitar acceso al dashboard sin contraseña
-- [ ] Mostrar error si la contraseña es incorrecta
+- [x] Crear variable `ADMIN_DASHBOARD_PASSWORD` en `.env.example`
+- [x] Crear pantalla de login
+- [x] Guardar autenticación en `st.session_state`
+- [x] Evitar acceso al dashboard sin contraseña
+- [x] Mostrar error si la contraseña es incorrecta
 
 ---
 
 ### Tarea 29 — Preparar ejecución local del panel *(Tarea 08 del doc. Streamlit)*
 
-**Estado:** Sin hacer
-**Objetivo:** documentar y probar cómo ejecutar el dashboard localmente (`streamlit run dashboard/app.py`).
+**Estado:** Hecho
+**Objetivo:** documentar y probar cómo ejecutar el dashboard localmente.
+**Archivos:** `docs/streamlit_dashboard.md`
 
-- [ ] Instalar dependencias
-- [ ] Configurar `.env`
-- [ ] Ejecutar Streamlit
-- [ ] Verificar conexión a Supabase
-- [ ] Probar filtros y vistas
+- [x] Instalar dependencias (`streamlit`, `pandas`)
+- [x] Configurar `.env` con `ADMIN_DASHBOARD_PASSWORD`
+- [x] Ejecutar Streamlit (`streamlit run dashboard/app.py`)
+- [x] Verificar conexión a Supabase
+- [x] Probar filtros y vistas
+- [x] Documentar en `docs/streamlit_dashboard.md`
 
 ---
 
@@ -438,16 +456,25 @@ Documento consolidado de tareas basado en:
 
 El MVP se considera completo cuando:
 
-- [ ] El servidor FastAPI levanta correctamente
-- [ ] Supabase está conectado
-- [ ] Se puede simular una conversación completa
-- [ ] Cada usuario mantiene su propio estado
-- [ ] Los datos se guardan en Supabase
-- [ ] La regla de negocio calcula un resultado
-- [ ] El bot responde con `preaprobado`, `observado` o `no_cumple`
-- [ ] Se registra derivación humana si aplica
-- [ ] El webhook de WhatsApp está implementado
-- [ ] Existe documentación para ejecutar y probar
-- [ ] El proyecto está organizado en Git con ramas y commits claros
-- [ ] El panel Streamlit muestra métricas, solicitudes, casos derivados y usuarios
-- [ ] El panel Streamlit está protegido con contraseña
+- [x] El servidor FastAPI levanta correctamente
+- [x] Supabase está conectado
+- [x] Se puede simular una conversación completa
+- [x] Cada usuario mantiene su propio estado
+- [x] Los datos se guardan en Supabase
+- [x] La regla de negocio calcula un resultado
+- [x] El bot responde con `preaprobado`, `observado` o `no_cumple`
+- [x] Se registra derivación humana si aplica
+- [x] El webhook de WhatsApp está implementado y funcionando en producción (Render + Twilio)
+- [x] Existe documentación para ejecutar y probar
+- [x] El proyecto está organizado en Git con ramas y commits claros
+- [x] El panel Streamlit muestra métricas, solicitudes, casos derivados y usuarios *(rama `develop`)*
+- [x] El panel Streamlit está protegido con contraseña *(rama `develop`)*
+
+---
+
+# Próximos pasos sugeridos
+
+1. **Fusionar `develop` en `main`** para unificar backend + panel Streamlit en una sola rama
+2. **Levantar el panel Streamlit** localmente y verificar datos reales de Supabase
+3. **Completar una conversación de prueba** de punta a punta por WhatsApp (precalificación completa)
+4. **Opcional:** desplegar el panel Streamlit (Render, Streamlit Cloud u otro servicio)

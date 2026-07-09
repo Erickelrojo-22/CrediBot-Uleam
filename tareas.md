@@ -18,8 +18,8 @@ Documento consolidado de tareas basado en:
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
 | Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
-| Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **21** | **0** | **8** |
+| Fase 2 — Panel administrativo Streamlit | 8 | 1 | 0 | 7 |
+| **Total** | **29** | **22** | **0** | **7** |
 
 ---
 
@@ -321,15 +321,15 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 22 — Crear módulo del dashboard *(Tarea 01 del doc. Streamlit)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** crear una carpeta independiente para el panel administrativo dentro del proyecto.
 
-- [ ] Crear carpeta `dashboard`
-- [ ] Crear archivo `app.py`
-- [ ] Crear carpeta `pages`
-- [ ] Crear carpeta `services`
-- [ ] Crear carpeta `components`
-- [ ] Verificar que Streamlit pueda ejecutarse y muestre una pantalla inicial
+- [x] Crear carpeta `dashboard`
+- [x] Crear archivo `app.py`
+- [x] Crear carpeta `pages`
+- [x] Crear carpeta `services`
+- [x] Crear carpeta `components`
+- [x] Verificar que Streamlit pueda ejecutarse y muestre una pantalla inicial
 
 ---
 

@@ -17,9 +17,9 @@ Documento consolidado de tareas basado en:
 
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
-| Fase 1 — Backend FastAPI + Supabase | 21 | 19 | 0 | 2 |
+| Fase 1 — Backend FastAPI + Supabase | 21 | 21 | 0 | 0 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **19** | **0** | **10** |
+| **Total** | **29** | **21** | **0** | **8** |
 
 ---
 
@@ -290,30 +290,30 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 20 — Documentar ejecución local *(Tarea 19 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** dejar instrucciones claras para que cualquier integrante pueda ejecutar el proyecto.
 **Archivos:** `README.md`, `docs/endpoints.md`, `docs/flujo_conversacional.md`
 
-- [ ] Descripción del proyecto y tecnologías usadas
-- [ ] Instrucciones de instalación
-- [ ] Variables de entorno
-- [ ] Comando para ejecutar servidor
-- [ ] Cómo probar con `/simulate/message`
-- [ ] Cómo configurar Supabase
-- [ ] Cómo conectar WhatsApp
+- [x] Descripción del proyecto y tecnologías usadas
+- [x] Instrucciones de instalación
+- [x] Variables de entorno
+- [x] Comando para ejecutar servidor
+- [x] Cómo probar con `/simulate/message`
+- [x] Cómo configurar Supabase
+- [x] Cómo conectar WhatsApp (Twilio Console)
 
 ---
 
 ### Tarea 21 — Preparar despliegue *(Tarea 20 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** dejar listo el backend para una demostración en línea (Render, Railway o Fly.io).
 
-- [ ] Crear archivo de configuración de despliegue si aplica
-- [ ] Configurar variables de entorno en la plataforma
-- [ ] Verificar endpoint `/health` en producción
-- [ ] Configurar URL pública como webhook de WhatsApp
-- [ ] Probar mensaje real desde WhatsApp
+- [x] Crear archivo de configuración de despliegue si aplica
+- [x] Configurar variables de entorno en la plataforma
+- [x] Verificar endpoint `/health` en producción
+- [x] Configurar URL pública como webhook de WhatsApp (Twilio)
+- [x] Probar mensaje real desde WhatsApp
 
 ---
 

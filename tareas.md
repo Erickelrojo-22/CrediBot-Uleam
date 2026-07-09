@@ -17,9 +17,9 @@ Documento consolidado de tareas basado en:
 
 | Fase | Tareas | Hechas | Pendientes | Sin hacer |
 |---|---|---|---|---|
-| Fase 1 — Backend FastAPI + Supabase | 21 | 14 | 0 | 7 |
+| Fase 1 — Backend FastAPI + Supabase | 21 | 18 | 0 | 3 |
 | Fase 2 — Panel administrativo Streamlit | 8 | 0 | 0 | 8 |
-| **Total** | **29** | **14** | **0** | **15** |
+| **Total** | **29** | **18** | **0** | **11** |
 
 ---
 
@@ -220,54 +220,54 @@ Documento consolidado de tareas basado en:
 
 ### Tarea 15 — Crear webhook de WhatsApp *(Tarea 14 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** recibir mensajes reales desde WhatsApp Cloud API o sandbox.
 **Archivos:** `app/api/routes_webhook.py`, `app/schemas/whatsapp.py`
 
-- [ ] Crear `GET /webhook/whatsapp` con validación de token (`hub.mode`, `hub.verify_token`, `hub.challenge`)
-- [ ] Crear `POST /webhook/whatsapp` para recibir payload de WhatsApp
-- [ ] Extraer teléfono y mensaje del payload
-- [ ] Enviar mensaje al motor conversacional
-- [ ] Enviar respuesta usando servicio de WhatsApp
+- [x] Crear `GET /webhook/whatsapp` con validación de token (`hub.mode`, `hub.verify_token`, `hub.challenge`)
+- [x] Crear `POST /webhook/whatsapp` para recibir payload de WhatsApp
+- [x] Extraer teléfono y mensaje del payload
+- [x] Enviar mensaje al motor conversacional
+- [x] Enviar respuesta usando servicio de WhatsApp
 
 ---
 
 ### Tarea 16 — Crear servicio de envío por WhatsApp *(Tarea 15 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** enviar respuestas al cliente mediante la API de WhatsApp.
 **Archivos:** `app/services/whatsapp_service.py`
 
-- [ ] Configurar URL de WhatsApp Cloud API
-- [ ] Enviar token en headers
-- [ ] Enviar mensaje de texto (`send_text_message`)
-- [ ] Manejar errores de API
+- [x] Configurar URL de WhatsApp Cloud API
+- [x] Enviar token en headers
+- [x] Enviar mensaje de texto (`send_text_message`)
+- [x] Manejar errores de API
 
 ---
 
 ### Tarea 17 — Crear flujo de derivación humana *(Tarea 16 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** registrar los casos que deben pasar a un asesor humano.
 **Archivos:** `app/services/handoff_service.py`, `app/repositories/handoff_repository.py`
 
-- [ ] Crear caso cuando el usuario selecciona opción 3 del menú
-- [ ] Crear caso cuando el resultado queda como `observado`
-- [ ] Crear caso cuando el usuario escribe `asesor`, `humano`, `persona` o similar
-- [ ] Crear caso cuando el usuario falla varias veces ingresando datos inválidos
-- [ ] Implementar `create_handoff_case`, `get_pending_handoff_cases`, `close_handoff_case`
+- [x] Crear caso cuando el usuario selecciona opción 3 del menú
+- [x] Crear caso cuando el resultado queda como `observado`
+- [x] Crear caso cuando el usuario escribe `asesor`, `humano`, `persona` o similar
+- [x] Crear caso cuando el usuario falla varias veces ingresando datos inválidos
+- [x] Implementar `create_handoff_case`, `get_pending_handoff_cases`, `close_handoff_case`
 
 ---
 
 ### Tarea 18 — Crear endpoints administrativos básicos *(Tarea 17 del doc. backend)*
 
-**Estado:** Sin hacer
+**Estado:** Hecho
 **Objetivo:** consultar información registrada durante la demostración.
 **Archivos:** `app/api/routes_admin.py`
 
-- [ ] Listar solicitudes de crédito (`GET /admin/requests`)
-- [ ] Listar casos pendientes de asesor (`GET /admin/handoff`)
-- [ ] Consultar historial de conversación por teléfono (`GET /admin/conversations/{phone}`)
+- [x] Listar solicitudes de crédito (`GET /admin/requests`)
+- [x] Listar casos pendientes de asesor (`GET /admin/handoff`)
+- [x] Consultar historial de conversación por teléfono (`GET /admin/conversations/{phone}`)
 
 ---
 

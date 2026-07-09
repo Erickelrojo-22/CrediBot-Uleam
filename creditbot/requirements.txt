@@ -7,5 +7,6 @@ pydantic-settings
 supabase
 httpx
 twilio
+streamlit
 pytest
 pytest-asyncio

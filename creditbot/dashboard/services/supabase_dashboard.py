@@ -25,7 +25,7 @@ def _get_env_value(name: str) -> str:
 
 @lru_cache
 def get_supabase_client() -> Client:
-    """Retorna el cliente de Supabase (cachead0) para el dashboard."""
+    """Retorna el cliente de Supabase (cacheado) para el dashboard."""
     supabase_url = _get_env_value("SUPABASE_URL")
     supabase_key = _get_env_value("SUPABASE_SERVICE_ROLE_KEY")
 

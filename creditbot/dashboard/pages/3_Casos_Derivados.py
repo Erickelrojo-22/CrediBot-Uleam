@@ -395,20 +395,35 @@ with left_col:
     if filtered.empty:
         st.info("No hay contactos con esos filtros.")
     else:
-        labels = {
-            str(row["id"]): f"{_client_name(row)} · {_safe_value(row.get('usuario_phone'))}"
-            for _, row in filtered.iterrows()
-        }
-        options = list(labels.keys())
-        current = st.session_state.get("selected_handoff_case_id")
-        if current not in options:
-            current = options[0]
-        picked = st.selectbox(
-            "Seleccionar por nombre o teléfono",
-            options=options,
-            format_func=lambda case_id: labels.get(case_id, case_id),
-            index=options.index(current),
+        # Opciones visibles = nombre · teléfono (el id queda interno).
+        label_to_id: dict[str, str] = {}
+        for _, row in filtered.iterrows():
+            case_id = str(row["id"])
+            base_label = (
+                f"{_client_name(row)} · {_safe_value(row.get('usuario_phone'), 'Sin teléfono')}"
+            )
+            label = base_label
+            # Evita colisiones si hay homónimos / mismo teléfono.
+            suffix = 2
+            while label in label_to_id:
+                label = f"{base_label} ({suffix})"
+                suffix += 1
+            label_to_id[label] = case_id
+
+        id_to_label = {case_id: label for label, case_id in label_to_id.items()}
+        labels = list(label_to_id.keys())
+        current_id = st.session_state.get("selected_handoff_case_id")
+        current_label = id_to_label.get(str(current_id), labels[0])
+        if current_label not in labels:
+            current_label = labels[0]
+
+        picked_label = st.selectbox(
+            "Seleccionar contacto",
+            options=labels,
+            index=labels.index(current_label),
+            help="Elige por nombre y teléfono; no por UUID.",
         )
+        picked = label_to_id[picked_label]
         if picked != st.session_state["selected_handoff_case_id"]:
             st.session_state["selected_handoff_case_id"] = picked
             st.rerun()

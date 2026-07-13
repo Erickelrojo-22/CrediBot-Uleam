@@ -4,6 +4,16 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
+def test_root_muestra_inicio_credibot():
+    client = TestClient(app)
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert "CrediBot" in response.text
+    assert "/docs" in response.text
+    assert "/simulate/message" in response.text
+
+
 def test_ai_health_no_expone_api_key(monkeypatch):
     from app.api import routes_health
 

@@ -1,6 +1,9 @@
-"""Pruebas del servicio de dashboard para casos derivados."""
+"""Pruebas del servicio de dashboard y reply de handoff."""
 from types import SimpleNamespace
 
+import pytest
+
+from app.services import handoff_service
 from dashboard.services import supabase_dashboard
 
 
@@ -37,7 +40,9 @@ class _FakeQuery:
             payload = self._recorder["insert_payload"]
             return SimpleNamespace(data=[{"id": "msg-1", **payload}])
         if "payload" in self._recorder:
-            return SimpleNamespace(data=[{"id": self._recorder["eq"][1], **self._recorder["payload"]}])
+            return SimpleNamespace(
+                data=[{"id": self._recorder["eq"][1], **self._recorder["payload"]}]
+            )
         return SimpleNamespace(data=[{"id": "msg-1", "content": "Hola"}])
 
 
@@ -52,6 +57,8 @@ class _FakeClient:
 
 def test_cerrar_caso_derivado_actualiza_estado(monkeypatch):
     recorder = {}
+    monkeypatch.setattr(supabase_dashboard, "_backend_api_url", lambda: "")
+    monkeypatch.setattr(supabase_dashboard, "_admin_password", lambda: "")
     monkeypatch.setattr(
         supabase_dashboard,
         "get_supabase_client",
@@ -85,18 +92,23 @@ def test_obtener_mensajes_conversacion_lee_historial(monkeypatch):
     assert recorder["order"] == ("created_at", False)
 
 
-def test_enviar_respuesta_humana_envia_y_guarda_mensaje(monkeypatch):
-    recorder = {}
-    monkeypatch.setattr(
-        supabase_dashboard,
-        "get_supabase_client",
-        lambda: _FakeClient(recorder),
-    )
-    monkeypatch.setattr(
-        supabase_dashboard,
-        "_send_dashboard_whatsapp_message",
-        lambda phone, message: {"sid": "SM123", "status": "queued"},
-    )
+def test_enviar_respuesta_humana_llama_backend(monkeypatch):
+    calls = {}
+
+    def fake_call(method, path, json_body=None):
+        calls["method"] = method
+        calls["path"] = path
+        calls["json"] = json_body
+        return {
+            "message": {
+                "id": "msg-1",
+                "direction": "outbound",
+                "content": json_body["message"],
+                "raw_payload": {"source": "dashboard_human"},
+            }
+        }
+
+    monkeypatch.setattr(supabase_dashboard, "_call_backend", fake_call)
 
     result = supabase_dashboard.enviar_respuesta_humana(
         case_id="case-1",
@@ -106,9 +118,52 @@ def test_enviar_respuesta_humana_envia_y_guarda_mensaje(monkeypatch):
         content="Hola, soy el asesor.",
     )
 
-    assert result["id"] == "msg-1"
-    assert result["direction"] == "outbound"
+    assert calls["method"] == "POST"
+    assert calls["path"] == "/admin/handoff/case-1/reply"
+    assert calls["json"] == {"message": "Hola, soy el asesor."}
     assert result["content"] == "Hola, soy el asesor."
-    assert result["raw_payload"]["source"] == "dashboard_human"
-    assert recorder["table"] == "handoff_cases"
-    assert recorder["payload"]["status"] == "assigned"
+
+
+def test_reply_as_advisor_envia_whatsapp_y_persiste(monkeypatch):
+    monkeypatch.setattr(
+        handoff_service.handoff_repository,
+        "get_handoff_case_by_id",
+        lambda case_id: {
+            "id": case_id,
+            "status": "pending",
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "transcript": [],
+        },
+    )
+    monkeypatch.setattr(
+        handoff_service.user_repository,
+        "get_user_by_id",
+        lambda user_id: {"id": user_id, "phone": "593999000111"},
+    )
+    monkeypatch.setattr(
+        handoff_service,
+        "send_text_message",
+        lambda phone, message: {"messages": [{"id": "wamid.1"}]},
+    )
+    monkeypatch.setattr(
+        handoff_service.message_repository,
+        "save_outbound_message",
+        lambda **kwargs: {"id": "msg-1", **kwargs},
+    )
+    monkeypatch.setattr(
+        handoff_service.handoff_repository,
+        "update_handoff_case",
+        lambda case_id, **kwargs: {"id": case_id, "status": kwargs["status"]},
+    )
+
+    result = handoff_service.reply_as_advisor("case-1", "Respuesta del asesor")
+
+    assert result["phone"] == "593999000111"
+    assert result["message"]["content"] == "Respuesta del asesor"
+    assert result["case"]["status"] == "assigned"
+
+
+def test_reply_as_advisor_rechaza_vacio():
+    with pytest.raises(ValueError, match="Escribe un mensaje"):
+        handoff_service.reply_as_advisor("case-1", "   ")

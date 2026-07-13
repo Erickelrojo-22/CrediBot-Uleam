@@ -81,9 +81,7 @@ Variables de entorno en Render:
 SUPABASE_URL=https://tu-proyecto.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
 ADMIN_DASHBOARD_PASSWORD=tu_clave_admin
-TWILIO_ACCOUNT_SID=tu-account-sid
-TWILIO_AUTH_TOKEN=tu-auth-token
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+BACKEND_API_URL=https://credibot-uleam-gjj2.onrender.com
 ```
 
 Al abrir la URL de Render, ingresa la contraseña configurada en `ADMIN_DASHBOARD_PASSWORD`.
@@ -107,6 +105,7 @@ En **Advanced settings**, pega los secretos en formato TOML:
 SUPABASE_URL = "https://tu-proyecto.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY = "tu-service-role-key"
 ADMIN_DASHBOARD_PASSWORD = "tu_clave_admin"
+BACKEND_API_URL = "https://credibot-uleam-gjj2.onrender.com"
 ```
 
 El archivo `dashboard/requirements.txt` contiene las dependencias minimas para que
@@ -119,7 +118,7 @@ Streamlit Cloud instale el panel desde esa subcarpeta.
 3. Revisa la pagina principal con metricas generales.
 4. Abre `Solicitudes` y prueba los filtros por resultado y derivacion.
 5. Descarga el CSV desde la pagina de solicitudes.
-6. Abre `Casos Derivados` y selecciona un caso para revisar motivo, resumen y transcript.
+6. Abre `Casos Derivados`, revisa el chat en vivo y responde como asesor (WhatsApp vía backend).
 7. Usa `Cerrar caso` cuando el asesor haya atendido la derivación.
 8. Abre `Usuarios` y prueba la busqueda por nombre o telefono.
 

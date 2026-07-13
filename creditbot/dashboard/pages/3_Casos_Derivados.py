@@ -155,7 +155,10 @@ st.set_page_config(
 require_auth()
 
 st.title("Casos Derivados")
-st.caption("Bandeja de atención humana con resumen y últimos mensajes del cliente.")
+st.caption(
+    "Bandeja de atención humana. Las respuestas salen por WhatsApp vía el backend "
+    "(Meta Cloud API). Requiere BACKEND_API_URL y ADMIN_DASHBOARD_PASSWORD."
+)
 
 try:
     casos_derivados = obtener_casos_derivados()

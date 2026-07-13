@@ -49,5 +49,8 @@ class Settings(BaseSettings):
     # --- Configuración regional ---
     default_country_code: str = "593"
 
+    # --- Auth del panel admin / API de handoff ---
+    admin_dashboard_password: str = ""
+
 
 settings = Settings()

@@ -69,6 +69,7 @@ def whatsapp_health_check():
         "configured": configured,
         "missing_env": missing,
         "app_public_url_set": bool(settings.app_public_url),
+        "admin_password_set": bool(settings.admin_dashboard_password),
         "twilio_validate_signature": settings.twilio_validate_signature,
         "redis_configured": redis_configured,
         "webhook_path": "/webhook/whatsapp",

@@ -20,6 +20,21 @@ def get_user_by_phone(phone: str) -> dict[str, Any] | None:
     return None
 
 
+def get_user_by_id(user_id: str) -> dict[str, Any] | None:
+    """Busca un usuario por su ID."""
+    response = (
+        get_supabase_client()
+        .table("users")
+        .select("*")
+        .eq("id", user_id)
+        .limit(1)
+        .execute()
+    )
+    if response.data:
+        return response.data[0]
+    return None
+
+
 def create_user(phone: str, full_name: str | None = None) -> dict[str, Any]:
     """Crea un nuevo usuario con el teléfono dado."""
     payload: dict[str, Any] = {"phone": phone}

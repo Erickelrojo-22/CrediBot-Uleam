@@ -1,4 +1,4 @@
-"""Servicio de conexión a Supabase específico para el dashboard de Streamlit."""
+"""Servicio de conexión a Supabase y API backend para el dashboard."""
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -44,6 +44,55 @@ def get_supabase_client() -> Client:
         )
 
     return create_client(supabase_url, supabase_key)
+
+
+def _backend_api_url() -> str:
+    return _get_env_value("BACKEND_API_URL").rstrip("/")
+
+
+def _admin_password() -> str:
+    return _get_env_value("ADMIN_DASHBOARD_PASSWORD")
+
+
+def _call_backend(method: str, path: str, json_body: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Llama al backend FastAPI con autenticación de admin."""
+    base = _backend_api_url()
+    password = _admin_password()
+    if not base:
+        raise DashboardConfigError(
+            "Configura BACKEND_API_URL (ej. https://credibot-uleam-gjj2.onrender.com)."
+        )
+    if not password:
+        raise DashboardConfigError(
+            "Configura ADMIN_DASHBOARD_PASSWORD (debe coincidir con el backend)."
+        )
+
+    url = f"{base}{path}"
+    headers = {"X-Admin-Password": password}
+    try:
+        response = httpx.request(
+            method,
+            url,
+            json=json_body,
+            headers=headers,
+            timeout=30.0,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        detail = exc.response.text
+        try:
+            detail = exc.response.json().get("detail", detail)
+        except Exception:
+            pass
+        raise DashboardConfigError(
+            f"Error del backend ({exc.response.status_code}): {detail}"
+        ) from exc
+    except httpx.RequestError as exc:
+        raise DashboardConfigError(f"No se pudo conectar al backend: {exc}") from exc
+
+    if not response.content:
+        return {}
+    return response.json()
 
 
 def obtener_usuarios() -> list[dict[str, Any]]:
@@ -96,46 +145,6 @@ def obtener_mensajes_conversacion(conversation_id: str) -> list[dict[str, Any]]:
     return response.data or []
 
 
-def _format_twilio_whatsapp_number(phone: str) -> str:
-    """Formatea un número al formato requerido por Twilio WhatsApp."""
-    cleaned = phone.replace("whatsapp:", "").replace("+", "").strip()
-    return f"whatsapp:+{cleaned}"
-
-
-def _send_dashboard_whatsapp_message(to_phone: str, message: str) -> dict[str, Any]:
-    """Envía WhatsApp desde el dashboard usando .env o Secrets de Streamlit."""
-    account_sid = _get_env_value("TWILIO_ACCOUNT_SID")
-    auth_token = _get_env_value("TWILIO_AUTH_TOKEN")
-    whatsapp_from = _get_env_value("TWILIO_WHATSAPP_FROM")
-
-    if not account_sid:
-        raise DashboardConfigError("TWILIO_ACCOUNT_SID no está configurado.")
-    if not auth_token:
-        raise DashboardConfigError("TWILIO_AUTH_TOKEN no está configurado.")
-    if not whatsapp_from:
-        raise DashboardConfigError("TWILIO_WHATSAPP_FROM no está configurado.")
-
-    response = httpx.post(
-        f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
-        data={
-            "From": whatsapp_from,
-            "To": _format_twilio_whatsapp_number(to_phone),
-            "Body": message,
-        },
-        auth=(account_sid, auth_token),
-        timeout=30.0,
-    )
-
-    try:
-        response.raise_for_status()
-    except httpx.HTTPStatusError as exc:
-        raise DashboardConfigError(
-            f"Error de Twilio API ({exc.response.status_code}): {exc.response.text}"
-        ) from exc
-
-    return response.json()
-
-
 def enviar_respuesta_humana(
     *,
     case_id: str,
@@ -144,50 +153,26 @@ def enviar_respuesta_humana(
     phone: str,
     content: str,
 ) -> dict[str, Any]:
-    """Envía una respuesta humana por WhatsApp y la registra en el historial."""
-    from datetime import datetime, timezone
-
+    """Envía respuesta humana vía backend (Meta/Twilio) y refresca el caso."""
+    del conversation_id, user_id, phone  # el backend resuelve teléfono desde el caso
     message = content.strip()
     if not message:
         raise DashboardConfigError("Escribe un mensaje antes de enviar.")
-    if not phone:
-        raise DashboardConfigError("El caso no tiene teléfono asociado.")
 
-    twilio_response = _send_dashboard_whatsapp_message(phone, message)
-
-    raw_payload = {
-        "source": "dashboard_human",
-        "twilio_sid": twilio_response.get("sid"),
-        "twilio_status": twilio_response.get("status"),
-    }
-
-    response = (
-        get_supabase_client()
-        .table("messages")
-        .insert(
-            {
-                "conversation_id": conversation_id,
-                "user_id": user_id,
-                "direction": "outbound",
-                "content": message,
-                "raw_payload": raw_payload,
-            }
-        )
-        .execute()
+    result = _call_backend(
+        "POST",
+        f"/admin/handoff/{case_id}/reply",
+        {"message": message},
     )
-
-    get_supabase_client().table("handoff_cases").update(
-        {
-            "status": "assigned",
-            "updated_at": datetime.now(timezone.utc).isoformat(),
-        }
-    ).eq("id", case_id).execute()
-
-    return response.data[0]
+    return result.get("message") or result
 
 
 def cerrar_caso_derivado(case_id: str) -> dict[str, Any]:
-    """Marca un caso derivado como cerrado."""
+    """Cierra el caso vía backend (fallback local a Supabase si no hay API)."""
+    if _backend_api_url() and _admin_password():
+        result = _call_backend("POST", f"/admin/handoff/{case_id}/close")
+        return result.get("case") or result
+
     from datetime import datetime, timezone
 
     response = (

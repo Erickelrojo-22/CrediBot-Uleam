@@ -12,7 +12,7 @@ services:
       - key: APP_PUBLIC_URL
         sync: false
       - key: WHATSAPP_PROVIDER
-        value: twilio
+        value: meta
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
@@ -23,6 +23,16 @@ services:
         value: "true"
       - key: REDIS_URL
         sync: false
+      - key: ADMIN_DASHBOARD_PASSWORD
+        sync: false
+      - key: META_WHATSAPP_TOKEN
+        sync: false
+      - key: META_WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: META_WHATSAPP_VERIFY_TOKEN
+        sync: false
+      - key: META_WHATSAPP_APP_SECRET
+        sync: false
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
@@ -30,7 +40,7 @@ services:
       - key: TWILIO_WHATSAPP_FROM
         sync: false
       - key: TWILIO_VALIDATE_SIGNATURE
-        value: "true"
+        value: "false"
       - key: DEFAULT_COUNTRY_CODE
         value: "593"
 
@@ -48,9 +58,5 @@ services:
         sync: false
       - key: ADMIN_DASHBOARD_PASSWORD
         sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_WHATSAPP_FROM
-        sync: false
+      - key: BACKEND_API_URL
+        value: https://credibot-uleam-gjj2.onrender.com

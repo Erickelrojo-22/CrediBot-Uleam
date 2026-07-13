@@ -110,7 +110,23 @@ Lista solicitudes de crédito registradas.
 
 ### `GET /admin/handoff`
 
-Lista casos pendientes de derivación a asesor.
+Lista casos abiertos de derivación (pending/assigned).
+
+### `POST /admin/handoff/{case_id}/reply`
+
+Envía la respuesta del asesor por WhatsApp (Meta o Twilio según `WHATSAPP_PROVIDER`).
+
+**Header:** `X-Admin-Password: <ADMIN_DASHBOARD_PASSWORD>`
+
+**Body:**
+
+```json
+{ "message": "Hola, soy el asesor. Revisaré tu caso." }
+```
+
+### `POST /admin/handoff/{case_id}/close`
+
+Cierra el caso. Requiere el mismo header `X-Admin-Password`.
 
 ### `GET /admin/conversations/{phone}`
 

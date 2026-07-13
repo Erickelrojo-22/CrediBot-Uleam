@@ -25,6 +25,19 @@ def test_detecta_pregunta_de_politicas():
     assert intent_service.is_policy_question("hola") is False
 
 
+def test_no_confunde_respuesta_numerica_con_politica():
+    """Respuestas de plazo/monto no deben activar RAG por contener 'plazos'."""
+    assert intent_service.looks_like_numeric_answer("12") is True
+    assert intent_service.looks_like_numeric_answer("en 12 plazos") is True
+    assert intent_service.is_policy_question("en 12 plazos") is False
+    assert intent_service.is_policy_question("cuáles son los plazos?") is True
+
+
+def test_menu_no_deriva_por_persona_natural():
+    assert intent_service.menu_option_from_text("credito para persona natural") == "1"
+    assert intent_service.menu_option_from_text("hablar con una persona") == "3"
+
+
 def test_handoff_hint_no_se_duplica():
     message = message_service.with_handoff_hint("Indica tu ingreso mensual")
     assert "asesor" in message.lower()

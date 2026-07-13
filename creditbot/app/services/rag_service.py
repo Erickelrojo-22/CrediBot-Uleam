@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.config import settings
+from app.repositories import rag_repository
 
 logger = logging.getLogger(__name__)
 
@@ -89,14 +90,57 @@ def is_rag_available() -> bool:
 
 def retrieve_context(query: str, *, top_k: int = 3) -> list[str]:
     """Devuelve los fragmentos más relevantes para la pregunta del usuario."""
+    supabase_chunks = _retrieve_from_supabase(query, top_k=top_k)
+    if supabase_chunks:
+        return supabase_chunks
+
     chunks, vectors = _indexed_chunks()
     if not chunks or not vectors:
         return []
+
+    if not is_rag_available():
+        return list(chunks[:top_k])
 
     query_vector = _embed_texts([query])[0]
     scored: list[tuple[float, str]] = []
     for chunk, vector in zip(chunks, vectors, strict=False):
         scored.append((_cosine_similarity(query_vector, list(vector)), chunk))
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return [chunk for score, chunk in scored[:top_k] if score > 0.15]
+
+
+def _parse_embedding(raw: Any) -> list[float] | None:
+    if raw is None:
+        return None
+    if isinstance(raw, list):
+        return [float(x) for x in raw]
+    if isinstance(raw, str):
+        cleaned = raw.strip("[]")
+        if not cleaned:
+            return None
+        return [float(x.strip()) for x in cleaned.split(",")]
+    return None
+
+
+def _retrieve_from_supabase(query: str, *, top_k: int = 3) -> list[str]:
+    """Busca en rag_chunks de Supabase si hay embeddings indexados."""
+    if not settings.openai_api_key:
+        return []
+    rows = rag_repository.list_chunks_with_embeddings()
+    if not rows:
+        return []
+    try:
+        query_vector = _embed_texts([query])[0]
+    except Exception:  # noqa: BLE001
+        return []
+
+    scored: list[tuple[float, str]] = []
+    for row in rows:
+        vector = _parse_embedding(row.get("embedding"))
+        content = row.get("content")
+        if not vector or not content:
+            continue
+        scored.append((_cosine_similarity(query_vector, vector), str(content)))
     scored.sort(key=lambda item: item[0], reverse=True)
     return [chunk for score, chunk in scored[:top_k] if score > 0.15]
 

@@ -124,6 +124,15 @@ Commits).
 - La opción de asesor queda visible durante el flujo con un recordatorio permanente.
 - _Commits:_ `mejora intencion del flujo`, `agrega destino del credito`
 
+### Paso 9 — RAG básico de políticas
+- `docs/policies/credito_mvp.md`: documento fuente para requisitos, documentos, montos,
+  plazos, tasas referenciales y derivación humana.
+- `app/services/rag_service.py`: recupera secciones relevantes por coincidencia léxica
+  y construye una respuesta informativa con fuente local.
+- El flujo responde dudas de políticas sin cambiar el estado actual; luego recuerda qué
+  dato falta para continuar.
+- _Commits:_ `agrega rag de politicas`, `conecta rag al flujo`
+
 ### DevOps — CI/CD y contenerización
 - `.github/workflows/ci.yml`: pipeline de **GitHub Actions** que instala dependencias y
   corre las pruebas en cada push/PR a `main` y `develop`.
@@ -142,7 +151,7 @@ Commits).
   el consentimiento no se guardaba en `users` porque la cédula se leía de un objeto en
   memoria que se recargaba en cada mensaje; ahora se lee de la solicitud ya persistida.
 
-**Estado de pruebas:** 84 pruebas automatizadas, todas en verde.
+**Estado de pruebas:** 89 pruebas automatizadas, todas en verde.
 
 ---
 

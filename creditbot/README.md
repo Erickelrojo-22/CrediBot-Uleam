@@ -6,6 +6,9 @@ Agente conversacional de precalificación de crédito por WhatsApp.
 
 CrediBot guía al usuario paso a paso, valida datos, calcula una precalificación (`preaprobado`, `observado`, `no_cumple`), redacta respuestas con IA cuando OpenAI está configurado, registra la información en Supabase y deriva a un asesor humano cuando corresponde.
 
+También incluye un RAG básico sobre políticas internas en Markdown para responder
+dudas de requisitos, documentos, plazos, tasas y condiciones sin inventar datos.
+
 ## Estructura del proyecto
 
 ```text
@@ -84,6 +87,26 @@ OPENAI_ENABLE_AI=true
 
 Si `OPENAI_API_KEY` está vacío o la API falla, CrediBot responde con el texto
 base del flujo para no interrumpir la conversación.
+
+## RAG de políticas
+
+Las respuestas informativas usan documentos locales como fuente de verdad:
+
+```text
+docs/policies/
+└── credito_mvp.md
+```
+
+Ejemplos que activan RAG:
+
+```text
+qué requisitos necesito?
+qué documentos piden?
+cuáles son los plazos?
+```
+
+Si el usuario pregunta esto en medio del flujo, CrediBot responde la duda y luego
+le recuerda el dato pendiente para continuar.
 
 ## Configurar Supabase
 

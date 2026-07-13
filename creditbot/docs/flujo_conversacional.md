@@ -89,6 +89,13 @@ El menú acepta números y frases como `quiero un crédito`, `necesito informaci
 o `hablar con una persona`. La IA de OpenAI redacta la respuesta final cuando está
 configurada, pero las reglas de negocio y los estados los controla el backend.
 
+## RAG de políticas
+
+Las preguntas sobre requisitos, documentos, tasas, plazos o condiciones se
+responden con información recuperada desde `docs/policies/credito_mvp.md`.
+Si el usuario hace una pregunta informativa mientras está entregando datos, el
+bot responde y conserva el estado actual para no perder el flujo.
+
 ## Derivación a asesor
 
 Se crea un caso en `handoff_cases` cuando:

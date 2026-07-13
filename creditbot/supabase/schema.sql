@@ -57,10 +57,15 @@ create table if not exists handoff_cases (
     conversation_id uuid not null references conversations(id) on delete cascade,
     credit_request_id uuid references credit_requests(id) on delete set null,  -- Solicitud relacionada (opcional)
     reason text not null,                       -- Motivo de la derivación
+    handoff_summary text,                        -- Resumen para el asesor humano
+    transcript jsonb,                            -- Últimos mensajes para retomar contexto
     status text not null default 'pending' check (status in ('pending', 'assigned', 'closed')),
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+alter table handoff_cases add column if not exists handoff_summary text;
+alter table handoff_cases add column if not exists transcript jsonb;
 
 -- =====================================================================
 -- CrediBot v2 — IA + tools + RAG (sección 10.2 del documento de arquitectura)

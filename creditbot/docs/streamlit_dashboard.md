@@ -2,6 +2,10 @@
 
 El panel administrativo permite consultar la informacion registrada por CrediBot en Supabase: metricas generales, solicitudes de credito, casos derivados y usuarios.
 
+La vista de casos derivados funciona como bandeja de atención humana: muestra el
+motivo, resumen para asesor, últimos mensajes del transcript y permite cerrar el
+caso cuando ya fue atendido.
+
 ## Requisitos
 
 - Python 3.11+
@@ -84,8 +88,9 @@ Al abrir la URL de Render, ingresa la contraseña configurada en `ADMIN_DASHBOAR
 3. Revisa la pagina principal con metricas generales.
 4. Abre `Solicitudes` y prueba los filtros por resultado y derivacion.
 5. Descarga el CSV desde la pagina de solicitudes.
-6. Abre `Casos Derivados` y selecciona un caso para revisar su detalle.
-7. Abre `Usuarios` y prueba la busqueda por nombre o telefono.
+6. Abre `Casos Derivados` y selecciona un caso para revisar motivo, resumen y transcript.
+7. Usa `Cerrar caso` cuando el asesor haya atendido la derivación.
+8. Abre `Usuarios` y prueba la busqueda por nombre o telefono.
 
 ## Problemas comunes
 
@@ -95,4 +100,3 @@ Al abrir la URL de Render, ingresa la contraseña configurada en `ADMIN_DASHBOAR
 | No se pudo consultar Supabase | URL o Service Role Key incorrectas | Revisa `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` |
 | Las tablas aparecen vacias | Aun no hay datos registrados | Simula conversaciones o revisa el esquema en Supabase |
 | Streamlit no inicia | Faltan dependencias | Ejecuta `pip install -r requirements.txt` |
-

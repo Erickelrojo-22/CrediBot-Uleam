@@ -74,8 +74,19 @@ def obtener_casos_derivados() -> list[dict[str, Any]]:
     return response.data or []
 
 
+def cerrar_caso_derivado(case_id: str) -> dict[str, Any]:
+    """Marca un caso derivado como cerrado."""
+    response = (
+        get_supabase_client()
+        .table("handoff_cases")
+        .update({"status": "closed"})
+        .eq("id", case_id)
+        .execute()
+    )
+    return (response.data or [{}])[0]
+
+
 def probar_conexion() -> bool:
     """Prueba la conexión a Supabase consultando la tabla users."""
     get_supabase_client().table("users").select("id").limit(1).execute()
     return True
-

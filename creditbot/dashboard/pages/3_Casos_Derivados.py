@@ -11,6 +11,7 @@ from services.supabase_dashboard import (
     cerrar_caso_derivado,
     enviar_respuesta_humana,
     obtener_casos_derivados,
+    obtener_estado_configuracion,
     obtener_mensajes_conversacion,
     obtener_solicitudes,
     obtener_usuarios,
@@ -251,7 +252,31 @@ def _render_detail_item(label: str, value: str) -> None:
     )
 
 
-def _merge_case_data(
+def _render_config_status() -> None:
+    """Muestra si Twilio/Supabase están listos para responder."""
+    config = obtener_estado_configuracion()
+    if config["can_reply"]:
+        mode = "Twilio directo" if config["reply_mode"] == "twilio_direct" else "Backend API"
+        st.success(f"Listo para responder por WhatsApp ({mode}).")
+        return
+
+    missing: list[str] = []
+    if not config["supabase"]:
+        missing.append("Supabase (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)")
+    if not config["twilio"]:
+        missing.append(
+            "Twilio en el panel (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM)"
+        )
+    if not config["backend_api"]:
+        missing.append(
+            "o backend con Twilio (BACKEND_API_URL + ADMIN_DASHBOARD_PASSWORD en Render)"
+        )
+    st.warning(
+        "Aún no puedes enviar WhatsApp desde el panel. Configura: "
+        + "; ".join(missing)
+    )
+
+
     casos: list[dict[str, Any]],
     solicitudes: list[dict[str, Any]],
     usuarios: list[dict[str, Any]],
@@ -298,12 +323,14 @@ st.markdown(
       <div class="cb-hero-title">Atención Humana</div>
       <p class="cb-hero-subtitle">
         Bandeja tipo WhatsApp para revisar contactos derivados y responder en vivo
-        mediante el backend administrativo.
+        con Twilio desde este panel.
       </p>
     </div>
     """,
     unsafe_allow_html=True,
 )
+
+_render_config_status()
 
 try:
     casos_derivados = obtener_casos_derivados()
@@ -367,6 +394,24 @@ with left_col:
     if filtered.empty:
         st.info("No hay contactos con esos filtros.")
     else:
+        labels = {
+            str(row["id"]): f"{_client_name(row)} · {_safe_value(row.get('usuario_phone'))}"
+            for _, row in filtered.iterrows()
+        }
+        options = list(labels.keys())
+        current = st.session_state.get("selected_handoff_case_id")
+        if current not in options:
+            current = options[0]
+        picked = st.selectbox(
+            "Seleccionar por nombre o teléfono",
+            options=options,
+            format_func=lambda case_id: labels.get(case_id, case_id),
+            index=options.index(current),
+        )
+        if picked != st.session_state["selected_handoff_case_id"]:
+            st.session_state["selected_handoff_case_id"] = picked
+            st.rerun()
+
         for _, case in filtered.iterrows():
             case_id = str(case["id"])
             active = case_id == st.session_state["selected_handoff_case_id"]

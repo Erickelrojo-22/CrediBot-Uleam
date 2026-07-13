@@ -55,6 +55,22 @@ class _FakeClient:
         return _FakeQuery(self._recorder)
 
 
+def test_obtener_estado_configuracion_twilio(monkeypatch):
+    monkeypatch.setattr(supabase_dashboard, "_get_env_value", lambda name: {
+        "SUPABASE_URL": "https://x.supabase.co",
+        "SUPABASE_SERVICE_ROLE_KEY": "key",
+        "TWILIO_ACCOUNT_SID": "AC123",
+        "TWILIO_AUTH_TOKEN": "token",
+        "TWILIO_WHATSAPP_FROM": "whatsapp:+14155238886",
+    }.get(name, ""))
+
+    config = supabase_dashboard.obtener_estado_configuracion()
+    assert config["supabase"] is True
+    assert config["twilio"] is True
+    assert config["can_reply"] is True
+    assert config["reply_mode"] == "twilio_direct"
+
+
 def test_cerrar_caso_derivado_actualiza_estado(monkeypatch):
     recorder = {}
     monkeypatch.setattr(supabase_dashboard, "_backend_api_url", lambda: "")
@@ -92,7 +108,49 @@ def test_obtener_mensajes_conversacion_lee_historial(monkeypatch):
     assert recorder["order"] == ("created_at", False)
 
 
-def test_enviar_respuesta_humana_llama_backend(monkeypatch):
+def test_enviar_respuesta_humana_twilio_directo(monkeypatch):
+    recorder = {}
+
+    monkeypatch.setattr(
+        supabase_dashboard,
+        "obtener_estado_configuracion",
+        lambda: {
+            "supabase": True,
+            "twilio": True,
+            "backend_api": False,
+            "can_reply": True,
+            "reply_mode": "twilio_direct",
+            "backend_url": "",
+        },
+    )
+    monkeypatch.setattr(
+        supabase_dashboard,
+        "_send_twilio_whatsapp_message",
+        lambda phone, message: {"sid": "SM123", "status": "queued"},
+    )
+    monkeypatch.setattr(
+        supabase_dashboard,
+        "get_supabase_client",
+        lambda: _FakeClient(recorder),
+    )
+
+    result = supabase_dashboard.enviar_respuesta_humana(
+        case_id="case-1",
+        conversation_id="conv-1",
+        user_id="user-1",
+        phone="593999000111",
+        content="Hola, soy el asesor.",
+    )
+
+    assert result["direction"] == "outbound"
+    assert result["content"] == "Hola, soy el asesor."
+    assert result["raw_payload"]["source"] == "dashboard_human"
+    assert result["raw_payload"]["channel"] == "twilio_direct"
+    assert recorder["table"] == "handoff_cases"
+    assert recorder["payload"]["status"] == "assigned"
+
+
+def test_enviar_respuesta_humana_backend_fallback(monkeypatch):
     calls = {}
 
     def fake_call(method, path, json_body=None):
@@ -108,6 +166,18 @@ def test_enviar_respuesta_humana_llama_backend(monkeypatch):
             }
         }
 
+    monkeypatch.setattr(
+        supabase_dashboard,
+        "obtener_estado_configuracion",
+        lambda: {
+            "supabase": True,
+            "twilio": False,
+            "backend_api": True,
+            "can_reply": True,
+            "reply_mode": "backend_api",
+            "backend_url": "https://api.test",
+        },
+    )
     monkeypatch.setattr(supabase_dashboard, "_call_backend", fake_call)
 
     result = supabase_dashboard.enviar_respuesta_humana(
@@ -120,7 +190,6 @@ def test_enviar_respuesta_humana_llama_backend(monkeypatch):
 
     assert calls["method"] == "POST"
     assert calls["path"] == "/admin/handoff/case-1/reply"
-    assert calls["json"] == {"message": "Hola, soy el asesor."}
     assert result["content"] == "Hola, soy el asesor."
 
 
@@ -144,7 +213,7 @@ def test_reply_as_advisor_envia_whatsapp_y_persiste(monkeypatch):
     monkeypatch.setattr(
         handoff_service,
         "send_text_message",
-        lambda phone, message: {"messages": [{"id": "wamid.1"}]},
+        lambda phone, message: {"sid": "SM123"},
     )
     monkeypatch.setattr(
         handoff_service.message_repository,

@@ -88,6 +88,8 @@ cuota_estimada = amortización francesa con TEA por categoría
 El menú acepta números y frases como `quiero un crédito`, `necesito información`
 o `hablar con una persona`. La IA de OpenAI redacta la respuesta final cuando está
 configurada, pero las reglas de negocio y los estados los controla el backend.
+El modelo recibe solo contexto seguro: estado actual, paso pendiente y fragmentos
+RAG recuperados.
 
 ## RAG de políticas
 
@@ -104,6 +106,9 @@ Se crea un caso en `handoff_cases` cuando:
 - Escribe palabras como `asesor`, `humano`, `persona` o `agente`
 - El resultado queda como `observado`
 - Falla 3 veces con datos inválidos
+
+Cada caso incluye un resumen para el asesor y un transcript con los últimos mensajes
+guardados. El historial completo se mantiene en `messages` para seguimiento posterior.
 
 ## Cómo probar el flujo
 

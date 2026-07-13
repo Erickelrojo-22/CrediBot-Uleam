@@ -8,6 +8,8 @@ CrediBot guía al usuario paso a paso, valida datos, calcula una precalificació
 
 También incluye un RAG básico sobre políticas internas en Markdown para responder
 dudas de requisitos, documentos, plazos, tasas y condiciones sin inventar datos.
+Cuando el cliente pide un asesor, el sistema conserva el historial en `messages` y
+crea un caso con resumen y transcript para seguimiento humano.
 
 ## Estructura del proyecto
 

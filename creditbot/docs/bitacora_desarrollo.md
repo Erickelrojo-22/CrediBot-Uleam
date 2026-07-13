@@ -112,9 +112,12 @@ Commits).
 - La IA no decide el crédito: conserva opciones, montos, plazos, score, categoría y
   resultado. Si no existe `OPENAI_API_KEY` o la API falla, el bot responde con el
   texto base.
+- El agente recibe contexto seguro: estado anterior, estado objetivo, paso pendiente
+  y fragmentos RAG permitidos. Esto evita que el modelo pierda el flujo o invente
+  condiciones.
 - Tests cubren el fallback sin API key, el flag de desactivación y la llamada mockeada
   a OpenAI.
-- _Commit:_ `agrega agente de ia`
+- _Commits:_ `agrega agente de ia`, `mejora contexto de ia`
 
 ### Paso 8 — Intención natural y destino del crédito
 - `app/services/intent_service.py`: permite detectar intención del usuario sin obligarlo
@@ -132,6 +135,14 @@ Commits).
 - El flujo responde dudas de políticas sin cambiar el estado actual; luego recuerda qué
   dato falta para continuar.
 - _Commits:_ `agrega rag de politicas`, `conecta rag al flujo`
+
+### Paso 10 — Handoff con resumen y transcript
+- Cada mensaje entrante y saliente se guarda en `messages` con `conversation_id`, de modo
+  que el historial puede consultarse después.
+- Los casos de `handoff_cases` ahora guardan `handoff_summary` y `transcript` con los
+  últimos mensajes relevantes para que el asesor humano retome el caso con contexto.
+- El resumen indica el motivo de derivación y el último mensaje del cliente.
+- _Commit:_ `guarda resumen de handoff`
 
 ### DevOps — CI/CD y contenerización
 - `.github/workflows/ci.yml`: pipeline de **GitHub Actions** que instala dependencias y
@@ -151,7 +162,7 @@ Commits).
   el consentimiento no se guardaba en `users` porque la cédula se leía de un objeto en
   memoria que se recargaba en cada mensaje; ahora se lee de la solicitud ya persistida.
 
-**Estado de pruebas:** 89 pruebas automatizadas, todas en verde.
+**Estado de pruebas:** 90 pruebas automatizadas, todas en verde.
 
 ---
 

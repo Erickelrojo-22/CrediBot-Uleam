@@ -28,7 +28,7 @@ def ask_consent_message() -> str:
     """Solicita consentimiento para consultar el buró crediticio (RF-08)."""
     return (
         "Para precalificarte necesito tu autorización para consultar tu "
-        "historial crediticio (datos simulados con fines académicos). "
+        "historial crediticio. "
         "¿Autorizas la consulta?\n"
         "1. Sí, autorizo\n"
         "2. No autorizo"
@@ -119,7 +119,7 @@ def info_ai_welcome_message() -> str:
     """Invita al usuario a hacer preguntas con el asistente IA."""
     return (
         "Modo información con IA. Pregúntame sobre requisitos, score, tasas o el proceso "
-        "de precalificación (respuestas basadas en la política del curso).\n\n"
+        "de precalificación.\n\n"
         "Escribe tu pregunta.\n"
         "Para volver al menú: escribe *menu*, *inicio* o *0*."
     )
@@ -153,9 +153,9 @@ def _result_details(data: dict) -> str:
     if data.get("full_name"):
         lines.append(f"Perfil consultado: {data['full_name']}")
     if data.get("credit_score") is not None:
-        lines.append(f"Score crediticio (buró simulado): {data['credit_score']}")
+        lines.append(f"Score crediticio: {data['credit_score']}")
     elif data.get("tiene_perfil") is False:
-        lines.append("Perfil consultado: sin historial en el buró simulado")
+        lines.append("Perfil consultado: sin historial crediticio registrado")
     lines.extend(
         [
             f"Categoría de score: {data['categoria']}",

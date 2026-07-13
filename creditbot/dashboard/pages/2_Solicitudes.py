@@ -8,6 +8,7 @@ from services.supabase_dashboard import (
     obtener_casos_derivados,
     obtener_solicitudes,
 )
+from styles import apply_dashboard_styles
 
 
 st.set_page_config(
@@ -17,8 +18,19 @@ st.set_page_config(
 )
 
 require_auth()
+apply_dashboard_styles()
 
-st.title("Solicitudes de Credito")
+st.markdown(
+    """
+    <div class="cb-hero">
+      <div class="cb-hero-title">Solicitudes de Crédito</div>
+      <p class="cb-hero-subtitle">
+        Seguimiento de precalificaciones, resultados y derivaciones al asesor.
+      </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 try:
     solicitudes = obtener_solicitudes()
@@ -47,7 +59,7 @@ if "id" in df.columns:
 else:
     df["derivado_asesor"] = False
 
-# Filtros
+st.markdown('<div class="cb-section-title">Filtros</div>', unsafe_allow_html=True)
 col1, col2 = st.columns(2)
 
 resultado = col1.selectbox(
@@ -70,7 +82,20 @@ if derivacion == "Derivados":
 elif derivacion == "No derivados":
     filtered_df = filtered_df[~filtered_df["derivado_asesor"]]
 
-st.metric("Solicitudes mostradas", len(filtered_df))
+metric_cols = st.columns(4)
+metric_cols[0].metric("Solicitudes mostradas", len(filtered_df))
+metric_cols[1].metric(
+    "Preaprobadas",
+    int((filtered_df["result"] == "preaprobado").sum()) if "result" in filtered_df else 0,
+)
+metric_cols[2].metric(
+    "Observadas",
+    int((filtered_df["result"] == "observado").sum()) if "result" in filtered_df else 0,
+)
+metric_cols[3].metric(
+    "Derivadas",
+    int(filtered_df["derivado_asesor"].sum()) if "derivado_asesor" in filtered_df else 0,
+)
 
 preferred_columns = [
     "id",
@@ -90,6 +115,7 @@ visible_columns = [column for column in preferred_columns if column in filtered_
 extra_columns = [column for column in filtered_df.columns if column not in visible_columns]
 display_df = filtered_df[visible_columns + extra_columns]
 
+st.markdown('<div class="cb-section-title">Listado</div>', unsafe_allow_html=True)
 st.dataframe(display_df, use_container_width=True, hide_index=True)
 
 # Botón para descargar CSV

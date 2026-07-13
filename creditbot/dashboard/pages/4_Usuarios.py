@@ -4,6 +4,7 @@ import streamlit as st
 
 from components.auth import require_auth
 from services.supabase_dashboard import DashboardConfigError, obtener_usuarios
+from styles import apply_dashboard_styles
 
 
 st.set_page_config(
@@ -13,8 +14,19 @@ st.set_page_config(
 )
 
 require_auth()
+apply_dashboard_styles()
 
-st.title("Usuarios")
+st.markdown(
+    """
+    <div class="cb-hero">
+      <div class="cb-hero-title">Usuarios</div>
+      <p class="cb-hero-subtitle">
+        Directorio de clientes que han interactuado con CrediBot.
+      </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 try:
     usuarios = obtener_usuarios()
@@ -31,6 +43,7 @@ if df.empty:
     st.info("No existen usuarios registrados.")
     st.stop()
 
+st.markdown('<div class="cb-section-title">Búsqueda</div>', unsafe_allow_html=True)
 search = st.text_input("Buscar por nombre o telefono").strip().lower()
 
 filtered_df = df.copy()
@@ -41,7 +54,18 @@ if search:
     mask = mask | phone.fillna("").astype(str).str.lower().str.contains(search, na=False)
     filtered_df = filtered_df[mask]
 
-st.metric("Usuarios mostrados", len(filtered_df))
+metric_cols = st.columns(3)
+metric_cols[0].metric("Usuarios mostrados", len(filtered_df))
+metric_cols[1].metric(
+    "Con cédula",
+    int(filtered_df["cedula"].notna().sum()) if "cedula" in filtered_df else 0,
+)
+metric_cols[2].metric(
+    "Con consentimiento",
+    int(filtered_df["consent_given"].fillna(False).sum())
+    if "consent_given" in filtered_df
+    else 0,
+)
 
 preferred_columns = [
     "id",
@@ -54,4 +78,5 @@ visible_columns = [column for column in preferred_columns if column in filtered_
 extra_columns = [column for column in filtered_df.columns if column not in visible_columns]
 display_df = filtered_df[visible_columns + extra_columns]
 
+st.markdown('<div class="cb-section-title">Directorio</div>', unsafe_allow_html=True)
 st.dataframe(display_df, use_container_width=True, hide_index=True)

@@ -18,7 +18,9 @@ resultado: **preaprobado**, **observado** o **no cumple**, con el monto máximo,
 estimada y la tasa referencial.
 
 La lógica crediticia es **determinista** (reglas de negocio puras), de modo que el
-resultado sea explicable y reproducible, no un número inventado.
+resultado sea explicable y reproducible, no un número inventado. La IA se usa como
+capa de redacción: mejora el lenguaje de la respuesta, pero no cambia estados,
+montos, tasas, score ni resultados.
 
 ---
 
@@ -36,6 +38,7 @@ WhatsApp / Simulador
         ▼
   Servicios      ──►  conversation_service (flujo), precalificacion_service, validation_service...
         │
+        ├─► Agente IA      ──►  openai_agent   (redacción controlada, con fallback)
         ├─► Dominio        ──►  cedula_validator, credit_rules   (lógica pura, sin BD)
         │
         └─► Repositorios   ──►  acceso a Supabase (users, credit_requests, credit_profiles,
@@ -45,6 +48,8 @@ WhatsApp / Simulador
 - **Dominio**: reglas de negocio puras (validación de cédula y motor de crédito). No
   conoce la base de datos ni el canal. Es 100% testeable.
 - **Servicios**: orquestan el flujo de la conversación y combinan dominio + repositorios.
+- **Agente IA**: redacta respuestas con OpenAI cuando hay API key; si falla, devuelve
+  el texto base para no cortar la conversación.
 - **Repositorios**: única capa que habla con Supabase.
 - **API**: expone los endpoints HTTP.
 
@@ -100,6 +105,17 @@ Commits).
   la conversación.
 - _Commit:_ `feat(audit): auditoria de tools con cedula enmascarada (tool_audit_logs)`
 
+### Paso 7 — Agente IA con OpenAI
+- `app/agent/openai_agent.py`: integra OpenAI mediante `client.responses.create`.
+  Recibe una respuesta base ya validada por el backend y la redacta en tono natural
+  para WhatsApp.
+- La IA no decide el crédito: conserva opciones, montos, plazos, score, categoría y
+  resultado. Si no existe `OPENAI_API_KEY` o la API falla, el bot responde con el
+  texto base.
+- Tests cubren el fallback sin API key, el flag de desactivación y la llamada mockeada
+  a OpenAI.
+- _Commit:_ `agrega agente de ia`
+
 ### DevOps — CI/CD y contenerización
 - `.github/workflows/ci.yml`: pipeline de **GitHub Actions** que instala dependencias y
   corre las pruebas en cada push/PR a `main` y `develop`.
@@ -118,7 +134,7 @@ Commits).
   el consentimiento no se guardaba en `users` porque la cédula se leía de un objeto en
   memoria que se recargaba en cada mensaje; ahora se lee de la solicitud ya persistida.
 
-**Estado de pruebas:** 71 pruebas automatizadas, todas en verde.
+**Estado de pruebas:** 77 pruebas automatizadas, todas en verde.
 
 ---
 

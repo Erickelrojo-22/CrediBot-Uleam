@@ -1,7 +1,9 @@
 """Capa de servicio para la derivación de casos a asesor humano."""
+from datetime import datetime, timezone
 from typing import Any
 
-from app.repositories import handoff_repository, message_repository
+from app.repositories import handoff_repository, message_repository, user_repository
+from app.services.whatsapp_service import WhatsAppServiceError, send_text_message
 
 REASON_LABELS = {
     "user_requested_advisor": "El cliente solicitó hablar con un asesor.",
@@ -63,9 +65,78 @@ def get_pending_handoff_cases() -> list[dict[str, Any]]:
     return handoff_repository.get_pending_handoff_cases()
 
 
+def get_open_handoff_cases() -> list[dict[str, Any]]:
+    """Retorna casos abiertos (pending o assigned)."""
+    return handoff_repository.get_open_handoff_cases()
+
+
 def close_handoff_case(case_id: str) -> dict[str, Any]:
     """Cierra un caso de derivación."""
+    case = handoff_repository.get_handoff_case_by_id(case_id)
+    if not case:
+        raise ValueError("Caso de derivación no encontrado.")
+    if case.get("status") == "closed":
+        return case
     return handoff_repository.close_handoff_case(case_id)
+
+
+def reply_as_advisor(case_id: str, content: str) -> dict[str, Any]:
+    """Envía la respuesta del asesor por WhatsApp y la registra en el historial."""
+    message = (content or "").strip()
+    if not message:
+        raise ValueError("Escribe un mensaje antes de enviar.")
+
+    case = handoff_repository.get_handoff_case_by_id(case_id)
+    if not case:
+        raise ValueError("Caso de derivación no encontrado.")
+    if case.get("status") == "closed":
+        raise ValueError("El caso ya está cerrado.")
+
+    user = user_repository.get_user_by_id(str(case["user_id"]))
+    if not user or not user.get("phone"):
+        raise ValueError("El caso no tiene un teléfono de cliente asociado.")
+
+    phone = str(user["phone"])
+    conversation_id = str(case["conversation_id"])
+    user_id = str(case["user_id"])
+
+    try:
+        provider_response = send_text_message(phone, message)
+    except WhatsAppServiceError as exc:
+        raise RuntimeError(str(exc)) from exc
+
+    raw_payload = {
+        "source": "dashboard_human",
+        "provider_response": provider_response,
+    }
+    saved = message_repository.save_outbound_message(
+        conversation_id=conversation_id,
+        user_id=user_id,
+        content=message,
+        raw_payload=raw_payload,
+    )
+
+    transcript = case.get("transcript") if isinstance(case.get("transcript"), list) else []
+    transcript = list(transcript)
+    transcript.append(
+        {
+            "direction": "outbound",
+            "content": message,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "source": "dashboard_human",
+        }
+    )
+    updated_case = handoff_repository.update_handoff_case(
+        case_id,
+        status="assigned",
+        transcript=transcript[-20:],
+    )
+
+    return {
+        "case": updated_case,
+        "message": saved,
+        "phone": phone,
+    }
 
 
 def register_handoff(

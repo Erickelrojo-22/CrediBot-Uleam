@@ -84,6 +84,7 @@ https://credibot-uleam-gjj2.onrender.com/webhook/whatsapp
 | `SUPABASE_URL` | Misma URL del backend |
 | `SUPABASE_SERVICE_ROLE_KEY` | Misma Service Role Key |
 | `ADMIN_DASHBOARD_PASSWORD` | Contraseña del panel admin |
+| `BACKEND_API_URL` | `https://credibot-uleam-gjj2.onrender.com` |
 
 Guía detallada del panel: [`docs/streamlit_dashboard.md`](streamlit_dashboard.md)
 
@@ -133,10 +134,23 @@ Define `REDIS_URL` (Upstash o Memorystore). Sin Redis, los contadores de sesión
 
 ### Meta WhatsApp Cloud API
 
+Guía completa: [`docs/meta_whatsapp_setup.md`](meta_whatsapp_setup.md)
+
 1. `WHATSAPP_PROVIDER=meta`
 2. Completa `META_WHATSAPP_TOKEN`, `META_WHATSAPP_PHONE_NUMBER_ID`, `META_WHATSAPP_VERIFY_TOKEN`
-3. Opcional: `META_WHATSAPP_APP_SECRET` para validar `X-Hub-Signature-256`
-4. En Meta Developers, webhook GET/POST a `/webhook/whatsapp` con el verify token
+3. `ADMIN_DASHBOARD_PASSWORD` (misma clave que el panel)
+4. Opcional: `META_WHATSAPP_APP_SECRET` para validar `X-Hub-Signature-256`
+5. En Meta Developers, webhook GET/POST a `/webhook/whatsapp` con el verify token
+
+### Panel Streamlit (respuestas de asesor)
+
+| Variable | Valor |
+|---|---|
+| `BACKEND_API_URL` | `https://credibot-uleam-gjj2.onrender.com` |
+| `ADMIN_DASHBOARD_PASSWORD` | Misma del backend |
+| `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` | Acceso a BD |
+
+El asesor responde en **Casos derivados**; el panel llama `POST /admin/handoff/{id}/reply`.
 
 ## Desarrollo local con túnel
 

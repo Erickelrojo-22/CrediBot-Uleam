@@ -38,6 +38,7 @@ from app.services import (
     rag_service,
     validation_service,
 )
+from app.services.session_store import get_session_store, validation_failure_key
 
 # Palabras clave que el usuario puede escribir para solicitar un asesor humano.
 # "persona" no se usa sola: provoca falsos positivos ("persona natural", etc.).
@@ -49,10 +50,6 @@ _HANDOFF_PERSONA_PATTERN = re.compile(
     r"\b(?:hablar con|quiero|necesito|pasar a|derivar(?:me)? a?).{0,30}\bpersona\b",
     re.IGNORECASE,
 )
-
-# Contador de fallos de validación por conversación (en memoria)
-_validation_failures: dict[str, int] = {}
-
 
 def _parse_amount(value: str) -> float:
     """Convierte el texto del monto a float."""
@@ -110,13 +107,12 @@ def _contains_handoff_keyword(text: str) -> bool:
 
 def _reset_validation_failures(conversation_id: str) -> None:
     """Reinicia el contador de fallos de validación para una conversación."""
-    _validation_failures.pop(conversation_id, None)
+    get_session_store().delete(validation_failure_key(conversation_id))
 
 
 def _track_validation_failure(conversation_id: str) -> bool:
     """Incrementa el contador de fallos y retorna True si se superó el límite."""
-    count = _validation_failures.get(conversation_id, 0) + 1
-    _validation_failures[conversation_id] = count
+    count = get_session_store().incr(validation_failure_key(conversation_id))
     return count >= MAX_VALIDATION_FAILURES
 
 

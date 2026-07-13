@@ -54,17 +54,16 @@ Permite probar el bot sin Twilio.
 }
 ```
 
-## Webhook de WhatsApp (Twilio)
+## Webhook de WhatsApp (Twilio / Meta)
 
 ### `GET /webhook/whatsapp`
 
-Estado del endpoint para confirmar que la ruta existe.
+- Sin query: estado del endpoint y proveedor activo (`WHATSAPP_PROVIDER`).
+- Con `hub.mode=subscribe` + `hub.verify_token` + `hub.challenge`: verificación de Meta Cloud API.
 
 ### `POST /webhook/whatsapp`
 
-Recibe mensajes enviados por Twilio cuando un usuario escribe por WhatsApp.
-
-**Formato esperado:** `application/x-www-form-urlencoded`
+**Twilio** — `application/x-www-form-urlencoded`
 
 Campos principales:
 
@@ -74,10 +73,15 @@ Campos principales:
 | `Body` | `Hola` |
 | `MessageSid` | `SMxxxxxxxx` |
 
-**Configuración en Twilio Console:**
+**Meta** — `application/json` (payload estándar de WhatsApp Cloud API).
+
+Si `META_WHATSAPP_APP_SECRET` está definido, se valida `X-Hub-Signature-256`.
+
+**Configuración:**
 
 - URL: `https://tu-dominio.com/webhook/whatsapp`
-- Método: `POST`
+- Método: `POST` (y verificación GET para Meta)
+
 
 ## Administración
 

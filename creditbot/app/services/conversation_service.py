@@ -52,8 +52,8 @@ def _parse_amount(value: str) -> float:
 
 
 def _parse_term(value: str) -> int:
-    """Convierte el texto del plazo a entero."""
-    return int(value.strip())
+    """Convierte el texto del plazo a entero (acepta '12 meses', 'en 12 plazos')."""
+    return validation_service.parse_term_value(value)
 
 
 def _parse_income(value: str) -> float:

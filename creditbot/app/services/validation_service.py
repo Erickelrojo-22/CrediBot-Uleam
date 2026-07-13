@@ -1,4 +1,6 @@
 """Funciones de validación de entrada del usuario."""
+import re
+
 from app.domain.cedula_validator import validate_cedula as _validate_cedula
 
 
@@ -12,6 +14,7 @@ def validate_cedula(value: str) -> tuple[bool, str | None]:
 def parse_numeric_value(value: str) -> float:
     """Convierte texto numérico a float, soportando coma decimal y separador de miles."""
     cleaned = value.strip().replace(" ", "")
+    cleaned = cleaned.replace("$", "").replace("usd", "").replace("USD", "")
     if "," in cleaned:
         parts = cleaned.split(",")
         if len(parts) == 2 and len(parts[1]) in (1, 2):
@@ -23,6 +26,19 @@ def parse_numeric_value(value: str) -> float:
         if len(fractional_part) == 3 and integer_part.replace(".", "").isdigit():
             cleaned = cleaned.replace(".", "")
     return float(cleaned)
+
+
+def parse_term_value(value: str) -> int:
+    """Extrae el plazo en meses desde texto como '12', '12 meses' o 'en 12 plazos'."""
+    cleaned = value.strip()
+    try:
+        return int(cleaned)
+    except ValueError:
+        pass
+    match = re.search(r"(\d{1,2})", cleaned)
+    if not match:
+        raise ValueError("No se encontró un plazo numérico.")
+    return int(match.group(1))
 
 
 def validate_name(value: str) -> tuple[bool, str | None]:
@@ -57,7 +73,7 @@ def validate_purpose(value: str) -> tuple[bool, str | None]:
 def validate_term(value: str) -> tuple[bool, str | None]:
     """Valida que el plazo sea un entero entre 3 y 36 meses."""
     try:
-        term = int(value.strip())
+        term = parse_term_value(value)
     except ValueError:
         return False, "El plazo debe ser un número entero."
 

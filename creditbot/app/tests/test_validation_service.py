@@ -35,6 +35,17 @@ def test_validate_term_correct():
     assert error is None
 
 
+def test_validate_term_natural_language():
+    """Plazo en frases naturales."""
+    from app.services.validation_service import parse_term_value
+
+    assert parse_term_value("12 meses") == 12
+    assert parse_term_value("en 12 plazos") == 12
+    is_valid, error = validate_term("en 12 plazos")
+    assert is_valid is True
+    assert error is None
+
+
 def test_validate_term_invalid():
     """Plazo fuera de rango y no numérico."""
     is_valid, error = validate_term("2")

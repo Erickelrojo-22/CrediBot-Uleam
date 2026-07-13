@@ -21,7 +21,7 @@ from app.core.constants import (
 from app.domain.cedula_validator import mask_cedula
 from app.repositories import conversation_repository, credit_repository, message_repository, user_repository
 from app.services import (
-    ai_assistant_service,
+    agent_service,
     ai_input_service,
     handoff_service,
     message_service,
@@ -236,7 +236,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 next_state = ASK_NAME
             elif menu_input.strip() == "2":
                 _reset_validation_failures(conversation_id)
-                if ai_assistant_service.is_ai_enabled():
+                if agent_service.is_agent_enabled():
                     response = message_service.info_ai_welcome_message()
                     next_state = INFO_AI
                 else:
@@ -255,7 +255,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 response = message_service.welcome_message()
                 next_state = MENU
             else:
-                ai_reply = ai_assistant_service.answer_credit_question(text, conversation_id)
+                ai_reply = agent_service.answer_question(text, conversation_id)
                 response = f"{ai_reply}\n\n{message_service.info_ai_footer()}"
                 next_state = INFO_AI
 

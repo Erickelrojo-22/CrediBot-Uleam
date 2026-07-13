@@ -121,12 +121,14 @@ Commits).
 ### Paso 7 — Integración OpenAI en todo el flujo
 - `app/services/ai_input_service.py`: normaliza lenguaje natural (ej. *un año* → 12 meses,
   *cinco mil* → 5000, *sí autorizo* → 1) antes de validar cada paso.
-- `app/services/ai_assistant_service.py` + `rag_service.py`: modo información (menú opción 2)
-  con RAG sobre `data/politica_credito.md`.
+- `app/services/agent_service.py`: agente OpenAI con function calling (`consultar_politica_credito`,
+  `validar_cedula`, `explicar_reglas_credito`) en modo INFO_AI (menú opción 2).
+- `app/services/ai_assistant_service.py` + `rag_service.py`: RAG sobre política de crédito.
 - Auditoría en `tool_audit_logs` para cada tool (`normalizar_entrada_usuario`,
-  `consultar_politica_credito`, `precalificar_por_cedula`).
+  `consultar_politica_credito`, `validar_cedula`, `explicar_reglas_credito`,
+  `agente_openai_tools`, `precalificar_por_cedula`).
 - Documentación: `docs/ia_tools_rag.md`.
-- _Commits:_ `feat: integrar OpenAI en todo el flujo conversacional`, docs y panel auditoría.
+- _Commits:_ integración OpenAI, RAG Supabase, agente con tools, docs y panel auditoría.
 
 **Estado de pruebas:** suite pytest completa en verde (ver CI en GitHub Actions).
 

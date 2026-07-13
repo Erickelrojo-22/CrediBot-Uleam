@@ -274,8 +274,8 @@ def test_restart_from_consent_returns_menu(
     mock_update_state.assert_called_once_with("conv-2", MENU)
 
 
-@patch("app.services.conversation_service.ai_assistant_service.is_ai_enabled", return_value=True)
-@patch("app.services.conversation_service.ai_assistant_service.answer_credit_question")
+@patch("app.services.conversation_service.agent_service.is_agent_enabled", return_value=True)
+@patch("app.services.conversation_service.agent_service.answer_question")
 @patch("app.services.conversation_service.message_repository.save_outbound_message")
 @patch("app.services.conversation_service.message_repository.save_inbound_message")
 @patch("app.services.conversation_service.conversation_repository.update_last_message")

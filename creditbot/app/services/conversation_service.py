@@ -73,6 +73,9 @@ def _build_result_data(evaluation: dict[str, Any]) -> dict[str, Any]:
         "monto_maximo": float(evaluation.get("monto_maximo", 0.0)),
         "cuota_estimada": float(evaluation.get("cuota_estimada", 0.0)),
         "plazo_meses": int(evaluation.get("plazo_meses", 0)),
+        "credit_score": evaluation.get("credit_score"),
+        "full_name": evaluation.get("full_name"),
+        "tiene_perfil": evaluation.get("tiene_perfil"),
     }
 
 
@@ -328,30 +331,34 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     monto_solicitado=float(request["requested_amount"]),
                     conversation_id=conversation_id,
                 )
-                credit_repository.save_result_v2(
-                    request["id"],
-                    credit_score=evaluation.get("credit_score"),
-                    score_category=str(evaluation.get("categoria")),
-                    max_amount=float(evaluation.get("monto_maximo", 0.0)),
-                    annual_rate=float(evaluation.get("tea", 0.0)),
-                    estimated_payment=float(evaluation.get("cuota_estimada", 0.0)),
-                    payment_capacity=float(evaluation.get("capacidad_pago", 0.0)),
-                    result=str(evaluation["result"]),
-                )
-                result_data = _build_result_data(evaluation)
-                if evaluation["result"] == CREDIT_RESULT_PREAPPROVED:
-                    response = message_service.preapproved_message(result_data)
-                elif evaluation["result"] == CREDIT_RESULT_OBSERVED:
-                    response = message_service.observed_message(result_data)
-                    handoff_service.register_handoff(
-                        user_id=user_id,
-                        conversation_id=conversation_id,
-                        reason="observed_result",
-                        credit_request_id=request["id"],
-                    )
+                if not evaluation.get("ok"):
+                    response = message_service.invalid_cedula_message(evaluation.get("motivo"))
+                    next_state = ASK_CEDULA
                 else:
-                    response = message_service.not_qualified_message(result_data)
-                next_state = SHOW_RESULT
+                    credit_repository.save_result_v2(
+                        request["id"],
+                        credit_score=evaluation.get("credit_score"),
+                        score_category=str(evaluation.get("categoria")),
+                        max_amount=float(evaluation.get("monto_maximo", 0.0)),
+                        annual_rate=float(evaluation.get("tea", 0.0)),
+                        estimated_payment=float(evaluation.get("cuota_estimada", 0.0)),
+                        payment_capacity=float(evaluation.get("capacidad_pago", 0.0)),
+                        result=str(evaluation["result"]),
+                    )
+                    result_data = _build_result_data(evaluation)
+                    if evaluation["result"] == CREDIT_RESULT_PREAPPROVED:
+                        response = message_service.preapproved_message(result_data)
+                    elif evaluation["result"] == CREDIT_RESULT_OBSERVED:
+                        response = message_service.observed_message(result_data)
+                        handoff_service.register_handoff(
+                            user_id=user_id,
+                            conversation_id=conversation_id,
+                            reason="observed_result",
+                            credit_request_id=request["id"],
+                        )
+                    else:
+                        response = message_service.not_qualified_message(result_data)
+                    next_state = SHOW_RESULT
         elif text.strip() == "2":
             _reset_validation_failures(conversation_id)
             response = message_service.ask_name_message()

@@ -93,6 +93,18 @@ create table if not exists credit_profiles (
     updated_at timestamptz not null default now()
 );
 
+-- Si la tabla ya existía de un intento anterior, CREATE TABLE IF NOT EXISTS no agrega
+-- columnas nuevas. Estos ALTER aseguran el esquema completo v2.
+alter table credit_profiles add column if not exists active_credits integer not null default 0;
+alter table credit_profiles add column if not exists total_debt numeric(12, 2) not null default 0;
+alter table credit_profiles add column if not exists monthly_installments numeric(12, 2) not null default 0;
+alter table credit_profiles add column if not exists has_delinquency boolean not null default false;
+alter table credit_profiles add column if not exists delinquency_days integer not null default 0;
+alter table credit_profiles add column if not exists blacklisted boolean not null default false;
+alter table credit_profiles add column if not exists thin_file boolean not null default false;
+alter table credit_profiles add column if not exists created_at timestamptz not null default now();
+alter table credit_profiles add column if not exists updated_at timestamptz not null default now();
+
 create index if not exists credit_profiles_cedula_idx on credit_profiles (cedula);
 
 -- Historial de eventos crediticios asociados a un perfil (para trazabilidad/RAG).
@@ -152,6 +164,7 @@ create table if not exists rag_chunks (
     created_at timestamptz not null default now()
 );
 
--- Índice para búsqueda por similitud coseno (opcional, mejora el rendimiento).
-create index if not exists rag_chunks_embedding_idx
-    on rag_chunks using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+-- NOTA: El índice ivfflat NO se crea aquí porque Supabase SQL Editor limita
+-- maintenance_work_mem a 32 MB y el índice requiere ~61 MB.
+-- RAG aún no está en uso; cuando haya datos, ejecutar:
+--   creditbot/supabase/schema_rag_index.sql

@@ -9,8 +9,19 @@
 -- más casos de mora activa y lista negra, para demostrar todas las rutas del bot.
 --
 -- Ejecutar en el SQL Editor de Supabase DESPUÉS de schema.sql.
+-- Si el seed falla por columnas faltantes, ejecutar primero las líneas ALTER de schema.sql
+-- (sección credit_profiles) o el bloque de reparación en este archivo.
 -- Idempotente: se puede correr varias veces sin duplicar (ON CONFLICT).
 -- =====================================================================
+
+-- Reparación rápida si credit_profiles se creó incompleta (error monthly_installments).
+alter table credit_profiles add column if not exists monthly_installments numeric(12, 2) not null default 0;
+alter table credit_profiles add column if not exists active_credits integer not null default 0;
+alter table credit_profiles add column if not exists total_debt numeric(12, 2) not null default 0;
+alter table credit_profiles add column if not exists has_delinquency boolean not null default false;
+alter table credit_profiles add column if not exists delinquency_days integer not null default 0;
+alter table credit_profiles add column if not exists blacklisted boolean not null default false;
+alter table credit_profiles add column if not exists thin_file boolean not null default false;
 
 insert into credit_profiles (
     cedula, full_name, credit_score, score_category,
@@ -53,14 +64,26 @@ on conflict (cedula) do nothing;
 insert into credit_history_events (credit_profile_id, event_type, description, event_date)
 select id, 'pago_puntual', 'Pago puntual de cuota de consumo', date '2026-05-10'
 from credit_profiles where cedula = '0912345675'
-on conflict do nothing;
+  and not exists (
+    select 1 from credit_history_events e
+    join credit_profiles p on p.id = e.credit_profile_id
+    where p.cedula = '0912345675' and e.event_type = 'pago_puntual'
+  );
 
 insert into credit_history_events (credit_profile_id, event_type, description, event_date)
 select id, 'mora', 'Atraso de 90 días en tarjeta de crédito', date '2026-03-15'
 from credit_profiles where cedula = '0955555552'
-on conflict do nothing;
+  and not exists (
+    select 1 from credit_history_events e
+    join credit_profiles p on p.id = e.credit_profile_id
+    where p.cedula = '0955555552' and e.event_type = 'mora'
+  );
 
 insert into credit_history_events (credit_profile_id, event_type, description, event_date)
 select id, 'credito_nuevo', 'Apertura de microcrédito', date '2026-01-20'
 from credit_profiles where cedula = '0919191916'
-on conflict do nothing;
+  and not exists (
+    select 1 from credit_history_events e
+    join credit_profiles p on p.id = e.credit_profile_id
+    where p.cedula = '0919191916' and e.event_type = 'credito_nuevo'
+  );

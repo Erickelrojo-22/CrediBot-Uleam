@@ -127,13 +127,23 @@ def confirm_data_message(data: dict) -> str:
 def _result_details(data: dict) -> str:
     """Bloque común de detalles numéricos de la precalificación v2."""
     tea_pct = float(data.get("tea", 0.0)) * 100
-    return (
-        f"Categoría de score: {data['categoria']}\n"
-        f"Monto máximo precalificado: ${float(data['monto_maximo']):.2f}\n"
-        f"Plazo: {int(data['plazo_meses'])} meses\n"
-        f"Cuota estimada: ${float(data['cuota_estimada']):.2f}\n"
-        f"Tasa referencial (TEA): {tea_pct:.2f}%"
+    lines: list[str] = []
+    if data.get("full_name"):
+        lines.append(f"Perfil consultado: {data['full_name']}")
+    if data.get("credit_score") is not None:
+        lines.append(f"Score crediticio (buró simulado): {data['credit_score']}")
+    elif data.get("tiene_perfil") is False:
+        lines.append("Perfil consultado: sin historial en el buró simulado")
+    lines.extend(
+        [
+            f"Categoría de score: {data['categoria']}",
+            f"Monto máximo precalificado: ${float(data['monto_maximo']):.2f}",
+            f"Plazo: {int(data['plazo_meses'])} meses",
+            f"Cuota estimada: ${float(data['cuota_estimada']):.2f}",
+            f"Tasa referencial (TEA): {tea_pct:.2f}%",
+        ]
     )
+    return "\n".join(lines)
 
 
 def preapproved_message(data: dict) -> str:

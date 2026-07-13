@@ -17,3 +17,9 @@ FINISHED = "FINISHED"
 CREDIT_RESULT_PREAPPROVED = "preaprobado"
 CREDIT_RESULT_OBSERVED = "observado"
 CREDIT_RESULT_NOT_QUALIFIED = "no_cumple"
+
+# Categorías de score crediticio (escala Ecuador 1–999, referencia Equifax)
+SCORE_EXCELLENT = "excelente"
+SCORE_ACCEPTABLE = "aceptable"
+SCORE_REGULAR = "regular"
+SCORE_HIGH_RISK = "alto_riesgo"

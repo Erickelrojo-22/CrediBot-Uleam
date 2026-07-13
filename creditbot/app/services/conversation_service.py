@@ -1,4 +1,4 @@
-﻿"""L├│gica principal del flujo conversacional del bot."""
+﻿"""Lógica principal del flujo conversacional del bot."""
 from typing import Any
 
 from app.core.constants import (
@@ -13,13 +13,21 @@ from app.core.constants import (
     CREDIT_RESULT_PREAPPROVED,
     FINISHED,
     HANDOFF_REQUESTED,
+    INFO_AI,
     MENU,
     SHOW_RESULT,
     START,
 )
 from app.domain.cedula_validator import mask_cedula
 from app.repositories import conversation_repository, credit_repository, message_repository, user_repository
-from app.services import handoff_service, message_service, precalificacion_service, validation_service
+from app.services import (
+    ai_assistant_service,
+    ai_input_service,
+    handoff_service,
+    message_service,
+    precalificacion_service,
+    validation_service,
+)
 
 # Palabras clave que el usuario puede escribir para solicitar un asesor humano
 HANDOFF_KEYWORDS = {"asesor", "humano", "persona", "agente"}
@@ -36,11 +44,16 @@ RESTART_PHRASES = (
     "desde el inicio",
     "salir",
 )
-# Cantidad m├íxima de fallos de validaci├│n antes de derivar a asesor
+# Cantidad máxima de fallos de validación antes de derivar a asesor
 MAX_VALIDATION_FAILURES = 3
 
-# Contador de fallos de validaci├│n por conversaci├│n (en memoria)
+# Contador de fallos de validación por conversación (en memoria)
 _validation_failures: dict[str, int] = {}
+
+
+def _ai_text(text: str, field: str, conversation_id: str) -> str:
+    """Normaliza la respuesta del usuario con reglas locales + OpenAI."""
+    return ai_input_service.normalize_user_input(text, field, conversation_id)
 
 
 def _parse_amount(value: str) -> float:
@@ -204,7 +217,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             next_state = MENU
 
         elif state == MENU:
-            is_valid, _ = validation_service.validate_menu_option(text)
+            menu_input = _ai_text(text, "menu_option", conversation_id)
+            is_valid, _ = validation_service.validate_menu_option(menu_input)
             if not is_valid:
                 handoff_response = _handle_validation_failure(
                     conversation_id,
@@ -215,16 +229,20 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     return handoff_response
                 response = message_service.invalid_menu_message() + "\n\n" + message_service.welcome_message()
                 next_state = MENU
-            elif text.strip() == "1":
+            elif menu_input.strip() == "1":
                 _reset_validation_failures(conversation_id)
                 credit_repository.create_draft_request(user_id, conversation_id)
                 response = message_service.ask_name_message()
                 next_state = ASK_NAME
-            elif text.strip() == "2":
+            elif menu_input.strip() == "2":
                 _reset_validation_failures(conversation_id)
-                response = message_service.general_info_message()
-                next_state = MENU
-            elif text.strip() == "3":
+                if ai_assistant_service.is_ai_enabled():
+                    response = message_service.info_ai_welcome_message()
+                    next_state = INFO_AI
+                else:
+                    response = message_service.general_info_message()
+                    next_state = MENU
+            elif menu_input.strip() == "3":
                 return _request_handoff(
                     conversation_id,
                     user_id,
@@ -232,8 +250,18 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     reason="menu_option_3",
                 )
 
+        elif state == INFO_AI:
+            if normalized_text in {"0", "menu", "menú", "inicio"}:
+                response = message_service.welcome_message()
+                next_state = MENU
+            else:
+                ai_reply = ai_assistant_service.answer_credit_question(text, conversation_id)
+                response = f"{ai_reply}\n\n{message_service.info_ai_footer()}"
+                next_state = INFO_AI
+
         elif state == ASK_NAME:
-            is_valid, _ = validation_service.validate_name(text)
+            name_input = _ai_text(text, "name", conversation_id)
+            is_valid, _ = validation_service.validate_name(name_input)
             if not is_valid:
                 handoff_response = _handle_validation_failure(
                     conversation_id, user_id, message_service.invalid_name_message()
@@ -244,13 +272,14 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 next_state = ASK_NAME
             else:
                 _reset_validation_failures(conversation_id)
-                user_repository.update_user_name(user_id, text.strip())
-                user["full_name"] = text.strip()
+                user_repository.update_user_name(user_id, name_input.strip())
+                user["full_name"] = name_input.strip()
                 response = message_service.ask_cedula_message()
                 next_state = ASK_CEDULA
 
         elif state == ASK_CEDULA:
-            is_valid, reason = validation_service.validate_cedula(text)
+            cedula_input = _ai_text(text, "cedula", conversation_id)
+            is_valid, reason = validation_service.validate_cedula(cedula_input)
             if not is_valid:
                 handoff_response = _handle_validation_failure(
                     conversation_id, user_id, message_service.invalid_cedula_message(reason)
@@ -261,7 +290,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 next_state = ASK_CEDULA
             else:
                 _reset_validation_failures(conversation_id)
-                cedula = _clean_cedula(text)
+                cedula = _clean_cedula(cedula_input)
                 request = credit_repository.get_draft_request(conversation_id)
                 if request:
                     credit_repository.update_cedula(request["id"], cedula)
@@ -270,7 +299,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 next_state = CONSENT
 
         elif state == CONSENT:
-            is_valid, _ = validation_service.validate_confirmation(text)
+            consent_input = _ai_text(text, "confirmation", conversation_id)
+            is_valid, _ = validation_service.validate_confirmation(consent_input)
             if not is_valid:
                 handoff_response = _handle_validation_failure(
                     conversation_id, user_id, message_service.invalid_confirmation_message()
@@ -279,7 +309,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     return handoff_response
                 response = message_service.invalid_confirmation_message()
                 next_state = CONSENT
-            elif text.strip() == "1":
+            elif consent_input.strip() == "1":
                 _reset_validation_failures(conversation_id)
                 request = credit_repository.get_draft_request(conversation_id)
                 cedula = (request or {}).get("cedula") or user.get("cedula")
@@ -294,7 +324,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 conversation_repository.finish_conversation(conversation_id)
 
         elif state == ASK_AMOUNT:
-            is_valid, _ = validation_service.validate_amount(text)
+            amount_input = _ai_text(text, "amount", conversation_id)
+            is_valid, _ = validation_service.validate_amount(amount_input)
             if not is_valid:
                 handoff_response = _handle_validation_failure(
                     conversation_id, user_id, message_service.invalid_amount_message()
@@ -307,12 +338,13 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 _reset_validation_failures(conversation_id)
                 request = credit_repository.get_draft_request(conversation_id)
                 if request:
-                    credit_repository.update_amount(request["id"], _parse_amount(text))
+                    credit_repository.update_amount(request["id"], _parse_amount(amount_input))
                 response = message_service.ask_term_message()
                 next_state = ASK_TERM
 
         elif state == ASK_TERM:
-            is_valid, _ = validation_service.validate_term(text)
+            term_input = _ai_text(text, "term_months", conversation_id)
+            is_valid, _ = validation_service.validate_term(term_input)
             if not is_valid:
                 handoff_response = _handle_validation_failure(
                     conversation_id, user_id, message_service.invalid_term_message()
@@ -325,12 +357,13 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 _reset_validation_failures(conversation_id)
                 request = credit_repository.get_draft_request(conversation_id)
                 if request:
-                    credit_repository.update_term(request["id"], _parse_term(text))
+                    credit_repository.update_term(request["id"], _parse_term(term_input))
                 response = message_service.ask_income_message()
                 next_state = ASK_INCOME
 
         elif state == ASK_INCOME:
-            is_valid, _ = validation_service.validate_income(text)
+            income_input = _ai_text(text, "income", conversation_id)
+            is_valid, _ = validation_service.validate_income(income_input)
             if not is_valid:
                 handoff_response = _handle_validation_failure(
                     conversation_id, user_id, message_service.invalid_income_message()
@@ -343,7 +376,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 _reset_validation_failures(conversation_id)
                 request = credit_repository.get_draft_request(conversation_id)
                 if request:
-                    credit_repository.update_income(request["id"], _parse_income(text))
+                    credit_repository.update_income(request["id"], _parse_income(income_input))
                     request = credit_repository.get_draft_request(conversation_id)
                 if request:
                     summary = _build_summary_data(user, request)
@@ -351,7 +384,8 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                 next_state = CONFIRM_DATA
 
         elif state == CONFIRM_DATA:
-            is_valid, _ = validation_service.validate_confirmation(text)
+            confirm_input = _ai_text(text, "confirmation", conversation_id)
+            is_valid, _ = validation_service.validate_confirmation(confirm_input)
             if not is_valid:
                 handoff_response = _handle_validation_failure(
                     conversation_id, user_id, message_service.invalid_confirmation_message()
@@ -360,7 +394,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                     return handoff_response
                 response = message_service.invalid_confirmation_message()
                 next_state = CONFIRM_DATA
-            elif text.strip() == "1":
+            elif confirm_input.strip() == "1":
                 _reset_validation_failures(conversation_id)
                 request = credit_repository.get_draft_request(conversation_id)
                 if not request:
@@ -403,7 +437,7 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                         else:
                             response = message_service.not_qualified_message(result_data)
                         next_state = SHOW_RESULT
-            elif text.strip() == "2":
+            elif confirm_input.strip() == "2":
                 _reset_validation_failures(conversation_id)
                 response = message_service.ask_name_message()
                 next_state = ASK_NAME

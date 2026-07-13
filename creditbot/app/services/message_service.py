@@ -52,19 +52,26 @@ def invalid_cedula_message(reason: str | None = None) -> str:
 
 def ask_amount_message(name: str | None = None) -> str:
     """Solicita el monto del crédito, opcionalmente saludando por el nombre."""
+    hint = " (puedes escribir, por ejemplo: 5000 o cinco mil)"
     if name:
-        return f"Gracias, {name}. ¿Qué monto deseas solicitar?"
-    return "¿Qué monto deseas solicitar?"
+        return f"Gracias, {name}. ¿Qué monto deseas solicitar?{hint}"
+    return f"¿Qué monto deseas solicitar?{hint}"
 
 
 def ask_term_message() -> str:
     """Solicita el plazo en meses."""
-    return "¿En cuántos meses deseas pagar el crédito?"
+    return (
+        "¿En cuántos meses deseas pagar el crédito? "
+        "Puedes responder con un número (ej. 12) o en lenguaje natural (ej. un año)."
+    )
 
 
 def ask_income_message() -> str:
     """Solicita el ingreso mensual aproximado."""
-    return "¿Cuál es tu ingreso mensual aproximado?"
+    return (
+        "¿Cuál es tu ingreso mensual aproximado? "
+        "Puedes responder con número o en palabras (ej. mil quinientos)."
+    )
 
 
 def invalid_name_message() -> str:
@@ -106,6 +113,21 @@ def general_info_message() -> str:
         "2. Información general\n"
         "3. Hablar con asesor"
     )
+
+
+def info_ai_welcome_message() -> str:
+    """Invita al usuario a hacer preguntas con el asistente IA."""
+    return (
+        "Modo información con IA. Pregúntame sobre requisitos, score, tasas o el proceso "
+        "de precalificación (respuestas basadas en la política del curso).\n\n"
+        "Escribe tu pregunta.\n"
+        "Para volver al menú: escribe *menu*, *inicio* o *0*."
+    )
+
+
+def info_ai_footer() -> str:
+    """Recordatorio para regresar al menú tras una respuesta IA."""
+    return "¿Otra pregunta? O escribe *menu* para volver al inicio."
 
 
 def confirm_data_message(data: dict) -> str:

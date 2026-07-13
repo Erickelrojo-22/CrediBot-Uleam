@@ -11,6 +11,7 @@ from app.core.constants import (
     CONSENT,
     CREDIT_RESULT_PREAPPROVED,
     FINISHED,
+    INFO_AI,
     MENU,
     SHOW_RESULT,
     START,
@@ -271,3 +272,72 @@ def test_restart_from_consent_returns_menu(
     mock_finish.assert_called_once_with(CONVERSATION_ID)
     mock_create_conversation.assert_called_once_with(USER_ID)
     mock_update_state.assert_called_once_with("conv-2", MENU)
+
+
+@patch("app.services.conversation_service.ai_assistant_service.is_ai_enabled", return_value=True)
+@patch("app.services.conversation_service.ai_assistant_service.answer_credit_question")
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_menu_option_2_enters_info_ai_mode(
+    mock_get_user,
+    mock_get_conversation,
+    mock_update_state,
+    mock_update_last_message,
+    mock_save_inbound,
+    mock_save_outbound,
+    mock_answer,
+    _mock_ai_enabled,
+):
+    """La opción 2 abre el modo IA cuando OpenAI está configurado."""
+    mock_get_user.return_value = _base_user()
+    mock_get_conversation.return_value = _base_conversation(MENU)
+    mock_answer.return_value = "Respuesta IA de prueba."
+
+    reply_menu = process_message("593999999999", "2")
+    assert "Modo información con IA" in reply_menu
+    mock_update_state.assert_called_with(CONVERSATION_ID, INFO_AI)
+
+    mock_get_conversation.return_value = _base_conversation(INFO_AI)
+    reply_question = process_message("593999999999", "¿Qué es el score?")
+    assert "Respuesta IA de prueba" in reply_question
+    mock_answer.assert_called_once()
+
+
+@patch("app.services.conversation_service.credit_repository.update_income")
+@patch("app.services.conversation_service.credit_repository.update_term")
+@patch("app.services.conversation_service.credit_repository.update_amount")
+@patch("app.services.conversation_service.credit_repository.get_draft_request")
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_ask_term_accepts_un_ano_as_12_months(
+    mock_get_user,
+    mock_get_conversation,
+    mock_update_state,
+    mock_update_last_message,
+    mock_save_inbound,
+    mock_save_outbound,
+    mock_get_draft,
+    mock_update_amount,
+    mock_update_term,
+    mock_update_income,
+):
+    """El flujo interpreta 'un año' como 12 meses en el paso de plazo."""
+    user = {**_base_user(), "full_name": "Carlos Ortiz"}
+    mock_get_user.return_value = user
+    mock_get_conversation.return_value = _base_conversation(ASK_TERM)
+    mock_get_draft.return_value = _draft_request(cedula=CEDULA, requested_amount=5000)
+    mock_update_term.return_value = _draft_request(cedula=CEDULA, requested_amount=5000, term_months=12)
+
+    reply = process_message("593999999999", "un año")
+
+    assert "ingreso" in reply.lower()
+    mock_update_term.assert_called_once()
+    assert mock_update_term.call_args[0][1] == 12

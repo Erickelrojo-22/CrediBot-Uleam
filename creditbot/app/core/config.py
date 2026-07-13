@@ -30,5 +30,9 @@ class Settings(BaseSettings):
     # --- Configuración regional ---
     default_country_code: str = "593"
 
+    # --- OpenAI (asistente IA + RAG) ---
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+
 
 settings = Settings()

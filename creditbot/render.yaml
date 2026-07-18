@@ -40,7 +40,7 @@ services:
     name: creditbot-dashboard
     runtime: python
     rootDir: creditbot
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r dashboard/requirements.txt
     startCommand: streamlit run dashboard/app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false
     healthCheckPath: /_stcore/health
     envVars:

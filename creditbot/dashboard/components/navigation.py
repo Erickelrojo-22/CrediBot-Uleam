@@ -1,9 +1,26 @@
 """Navegación e identidad visual del panel administrativo."""
 import streamlit as st
 
+from services.supabase_dashboard import obtener_contadores_navegacion
 
-def render_sidebar() -> None:
+
+def _safe_navigation_counts() -> dict[str, int]:
+    try:
+        return obtener_contadores_navegacion()
+    except Exception:
+        return {}
+
+
+def render_sidebar(counts: dict[str, int] | None = None) -> None:
     """Dibuja la marca y el menú común de todas las pantallas."""
+    navigation_counts = counts if counts is not None else _safe_navigation_counts()
+    requests_label = "Solicitudes"
+    cases_label = "Casos derivados"
+    if "solicitudes" in navigation_counts:
+        requests_label += f" · {navigation_counts['solicitudes']}"
+    if "casos_pendientes" in navigation_counts:
+        cases_label += f" · {navigation_counts['casos_pendientes']}"
+
     with st.sidebar:
         st.markdown(
             """
@@ -20,8 +37,8 @@ def render_sidebar() -> None:
         )
         st.page_link("app.py", label="Panel general", icon="🏠")
         st.page_link("pages/1_Simulador.py", label="Simulador de chat", icon="💬")
-        st.page_link("pages/2_Solicitudes.py", label="Solicitudes", icon="📄")
-        st.page_link("pages/3_Casos_Derivados.py", label="Casos derivados", icon="🎧")
+        st.page_link("pages/2_Solicitudes.py", label=requests_label, icon="📄")
+        st.page_link("pages/3_Casos_Derivados.py", label=cases_label, icon="🎧")
         st.page_link("pages/4_Usuarios.py", label="Usuarios", icon="👥")
         st.page_link("pages/5_Auditoria_IA.py", label="Auditoría IA", icon="🛡️")
         st.markdown(

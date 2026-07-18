@@ -53,6 +53,10 @@ def require_auth() -> None:
             max-width: 460px !important;
             padding-top: 12vh !important;
         }
+        /* Streamlit muestra esta ayuda dentro del input cuando pertenece a un form. */
+        div[data-testid="stForm"] [data-testid="InputInstructions"] {
+            display: none !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,

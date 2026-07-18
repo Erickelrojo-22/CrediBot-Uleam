@@ -1,5 +1,6 @@
 streamlit
 pandas
+plotly>=6.0,<7
 supabase
 python-dotenv
 httpx

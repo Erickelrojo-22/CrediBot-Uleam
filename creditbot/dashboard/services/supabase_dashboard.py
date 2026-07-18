@@ -269,6 +269,25 @@ def obtener_usuarios() -> list[dict[str, Any]]:
     return response.data or []
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def obtener_contadores_navegacion() -> dict[str, int]:
+    """Obtiene contadores mínimos para el sidebar sin descargar tablas completas."""
+    client = get_supabase_client()
+    solicitudes = client.table("credit_requests").select("id").execute().data or []
+    casos = (
+        client.table("handoff_cases")
+        .select("id,status")
+        .neq("status", "closed")
+        .execute()
+        .data
+        or []
+    )
+    return {
+        "solicitudes": len(solicitudes),
+        "casos_pendientes": sum(case.get("status") == "pending" for case in casos),
+    }
+
+
 def obtener_solicitudes() -> list[dict[str, Any]]:
     """Obtiene todas las solicitudes de crédito desde Supabase."""
     response = (

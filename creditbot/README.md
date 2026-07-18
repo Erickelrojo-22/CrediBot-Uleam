@@ -129,7 +129,7 @@ Documentación interactiva: `http://localhost:8000/docs`
 
 ## Panel administrativo Streamlit
 
-El proyecto incluye un panel interno en Streamlit para revisar metricas, solicitudes, casos derivados y usuarios.
+El proyecto incluye un panel interno responsive en Streamlit para revisar metricas por periodo, solicitudes, casos derivados, usuarios y auditoria de IA. Tambien incorpora un simulador que prueba el backend real sin consumir mensajes de WhatsApp.
 
 Configura en `creditbot/.env`:
 
@@ -142,6 +142,7 @@ ADMIN_DASHBOARD_PASSWORD=tu_clave_admin
 Ejecuta el panel desde `creditbot`:
 
 ```bash
+pip install -r dashboard/requirements.txt
 streamlit run dashboard/app.py
 ```
 

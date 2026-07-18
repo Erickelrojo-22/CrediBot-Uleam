@@ -7,11 +7,23 @@ import streamlit as st
 
 from components.auth import require_auth
 from components.navigation import render_sidebar
+from components.presentation import (
+    case_priority,
+    format_datetime as _format_datetime,
+    format_money,
+    format_term,
+    relative_time,
+    safe_value as _safe_value,
+    translate_case_reason as _reason_text,
+    translate_case_status,
+)
+from components.ui import render_data_toolbar, render_empty_state, render_page_header
 from services.supabase_dashboard import (
     DashboardConfigError,
     cerrar_caso_derivado,
     enviar_respuesta_humana,
     obtener_casos_derivados,
+    obtener_contadores_navegacion,
     obtener_estado_configuracion,
     obtener_mensajes_conversacion,
     obtener_solicitudes,
@@ -20,47 +32,14 @@ from services.supabase_dashboard import (
 from styles import apply_dashboard_styles
 
 
-def _safe_value(value: object, default: str = "No registrado") -> str:
-    """Retorna un texto seguro para mostrar en UI."""
-    if value is None or pd.isna(value):
-        return default
-    text = str(value).strip()
-    return text if text else default
-
-
 def _money_text(value: object) -> str:
     """Formatea un valor monetario."""
-    if value is None or pd.isna(value):
-        return "No registrado"
-    return f"${float(value):,.2f}"
+    return format_money(value, "No registrado")
 
 
 def _term_text(value: object) -> str:
     """Formatea un plazo en meses."""
-    if value is None or pd.isna(value):
-        return "No registrado"
-    return f"{int(value)} meses"
-
-
-def _reason_text(reason: object) -> str:
-    """Traduce motivos técnicos a texto de operación."""
-    labels = {
-        "user_requested_advisor": "Solicitó asesor",
-        "menu_option_3": "Eligió hablar con asesor",
-        "observed_result": "Resultado observado",
-        "repeated_invalid_input": "Fallos de validación",
-    }
-    return labels.get(str(reason), _safe_value(reason))
-
-
-def _format_datetime(value: object) -> str:
-    """Devuelve fecha corta para listas y burbujas."""
-    if value is None or pd.isna(value):
-        return ""
-    parsed = pd.to_datetime(value, errors="coerce")
-    if pd.isna(parsed):
-        return str(value)
-    return parsed.strftime("%d/%m %H:%M")
+    return format_term(value, "No registrado")
 
 
 def _short_text(value: object, limit: int = 92) -> str:
@@ -139,11 +118,12 @@ def _render_contact_card(case: pd.Series, active: bool) -> None:
     name = escape(_client_name(case))
     phone = escape(_safe_value(case.get("usuario_phone")))
     reason = escape(_reason_text(case.get("reason")))
-    status = escape(_safe_value(case.get("status"), "pending"))
-    created_at = escape(_format_datetime(case.get("created_at")))
+    status = escape(translate_case_status(case.get("status")))
+    created_at = escape(relative_time(case.get("created_at")))
     summary = escape(_short_text(case.get("handoff_summary"), 88))
     active_class = "cb-contact-active" if active else ""
     pill_class = _status_class(case.get("status"))
+    priority, priority_class = case_priority(case.get("reason"))
 
     st.markdown(
         f"""
@@ -153,6 +133,7 @@ def _render_contact_card(case: pd.Series, active: bool) -> None:
           <div style="margin:8px 0 6px;">
             <span class="cb-pill {pill_class}">{status}</span>
             <span class="cb-pill">{reason}</span>
+            <span class="cb-pill {priority_class}">Prioridad {priority}</span>
           </div>
           <div class="cb-contact-meta">{summary}</div>
           <div class="cb-contact-meta" style="margin-top:6px;">{created_at}</div>
@@ -237,6 +218,7 @@ def _render_reply_form(selected_case: pd.Series) -> None:
             st.error(f"No se pudo enviar la respuesta: {exc}")
         else:
             st.success("Respuesta enviada por WhatsApp.")
+            obtener_contadores_navegacion.clear()
             st.rerun()
 
 
@@ -320,18 +302,10 @@ apply_dashboard_styles()
 require_auth()
 render_sidebar()
 
-st.markdown(
-    """
-    <div class="cb-hero">
-      <div class="cb-eyebrow">Bandeja de atención</div>
-      <div class="cb-hero-title">Atención Humana</div>
-      <p class="cb-hero-subtitle">
-        Bandeja tipo WhatsApp para revisar contactos derivados y responder en vivo
-        mediante el canal configurado desde este panel.
-      </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
+render_page_header(
+    "Bandeja de atención",
+    "Atención Humana",
+    "Revisa contactos derivados, conversa en vivo y cierra los casos atendidos.",
 )
 
 _render_config_status()
@@ -349,8 +323,10 @@ except Exception as exc:
 
 df = _merge_case_data(casos_derivados, solicitudes, usuarios)
 
+render_data_toolbar("handoff")
+
 if df.empty:
-    st.success("No existen casos derivados abiertos.")
+    render_empty_state("No existen casos derivados abiertos.")
     st.stop()
 
 pending_count = int((df["status"] == "pending").sum()) if "status" in df else 0
@@ -366,7 +342,8 @@ metrics[3].metric("Observados", observed_count)
 if "selected_handoff_case_id" not in st.session_state:
     st.session_state["selected_handoff_case_id"] = str(df.iloc[0]["id"])
 
-left_col, chat_col, detail_col = st.columns([0.9, 1.55, 0.85], gap="medium")
+workspace = st.container(key="handoff_workspace")
+left_col, chat_col, detail_col = workspace.columns([0.9, 1.55, 0.85], gap="medium")
 
 with left_col:
     st.markdown('<div class="cb-section-title">Contactos</div>', unsafe_allow_html=True)
@@ -375,6 +352,10 @@ with left_col:
         "Estado",
         options=["Todos", "Pendientes", "En atención"],
         default="Todos",
+    )
+    priority_filter = st.selectbox(
+        "Prioridad",
+        options=["Todas", "Alta", "Media", "Revisar"],
     )
 
     filtered = df.copy()
@@ -394,6 +375,10 @@ with left_col:
         filtered = filtered[filtered["status"] == "pending"]
     elif status_filter == "En atención" and "status" in filtered:
         filtered = filtered[filtered["status"] == "assigned"]
+
+    if priority_filter != "Todas" and "reason" in filtered:
+        priority_mask = filtered["reason"].map(lambda value: case_priority(value)[0])
+        filtered = filtered[priority_mask == priority_filter]
 
     if filtered.empty:
         st.info("No hay contactos con esos filtros.")
@@ -458,7 +443,7 @@ with chat_col:
             <p class="cb-chat-name">{escape(client_name)}</p>
             <p class="cb-chat-phone">{escape(phone)} · {escape(reason)}</p>
           </div>
-          <span class="cb-pill {_status_class(status)}">{escape(status)}</span>
+          <span class="cb-pill {_status_class(status)}">{escape(translate_case_status(status))}</span>
         </div>
         """,
         unsafe_allow_html=True,
@@ -485,7 +470,10 @@ with detail_col:
     _render_detail_item("Cliente", client_name)
     _render_detail_item("Teléfono", phone)
     _render_detail_item("Motivo", reason)
-    _render_detail_item("Estado", status)
+    _render_detail_item("Estado", translate_case_status(status))
+    priority, _ = case_priority(selected_case.get("reason"))
+    _render_detail_item("Prioridad", priority)
+    _render_detail_item("Tiempo pendiente", relative_time(selected_case.get("created_at")))
     _render_detail_item("Creado", _format_datetime(selected_case.get("created_at")))
     st.markdown("</div></div>", unsafe_allow_html=True)
 
@@ -514,5 +502,6 @@ with detail_col:
             st.error(f"No se pudo cerrar el caso: {exc}")
         else:
             st.success("Caso cerrado correctamente.")
+            obtener_contadores_navegacion.clear()
             st.session_state.pop("selected_handoff_case_id", None)
             st.rerun()

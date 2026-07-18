@@ -1,6 +1,8 @@
 # Panel administrativo Streamlit
 
-El panel administrativo permite consultar la informacion registrada por CrediBot en Supabase: metricas generales, solicitudes de credito, casos derivados y usuarios.
+El panel administrativo permite consultar la informacion registrada por CrediBot en Supabase: metricas por periodo, solicitudes de credito, casos derivados, usuarios y auditoria de IA.
+
+La portada incluye filtros para todo el historico, ultimos 7 o 30 dias y rangos personalizados. Las tablas permiten seleccionar registros para revisar su detalle y el menu muestra contadores operativos con cache de 60 segundos.
 
 La vista **Casos Derivados / Atención Humana** funciona como bandeja tipo WhatsApp: muestra el
 motivo, resumen para asesor, chat en vivo y permite **responder por Twilio** desde el panel.
@@ -8,7 +10,7 @@ motivo, resumen para asesor, chat en vivo y permite **responder por Twilio** des
 ## Requisitos
 
 - Python 3.11+
-- Dependencias instaladas desde `requirements.txt`
+- Dependencias instaladas desde `dashboard/requirements.txt`
 - Proyecto Supabase con el esquema de `supabase/schema.sql`
 - Archivo `.env` configurado en la carpeta `creditbot`
 
@@ -19,7 +21,7 @@ Desde la carpeta `creditbot`:
 ```bash
 python -m venv venv
 venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r dashboard/requirements.txt
 copy .env.example .env
 ```
 
@@ -28,7 +30,7 @@ En Linux/macOS:
 ```bash
 python -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r dashboard/requirements.txt
 cp .env.example .env
 ```
 
@@ -74,7 +76,7 @@ El panel se despliega como un **segundo Web Service** separado del backend del b
 |---|---|
 | **Name** | `creditbot-dashboard` |
 | **Root Directory** | `creditbot` |
-| **Build Command** | `pip install -r requirements.txt` |
+| **Build Command** | `pip install -r dashboard/requirements.txt` |
 | **Start Command** | `streamlit run dashboard/app.py --server.port=$PORT --server.address=0.0.0.0 --server.headless=true --browser.gatherUsageStats=false` |
 | **Health Check Path** | `/_stcore/health` |
 
@@ -129,11 +131,12 @@ TWILIO_WHATSAPP_FROM = "whatsapp:+14155238886"
 
 1. Abre la URL local de Streamlit.
 2. Ingresa la clave configurada en `ADMIN_DASHBOARD_PASSWORD`.
-3. Revisa la pagina principal con metricas generales.
-4. Abre `Atención Humana` / `Casos Derivados`.
-5. Verifica el banner de configuración (Twilio listo).
-6. Selecciona un contacto por nombre/teléfono y responde.
-7. Usa `Cerrar caso` cuando el asesor haya atendido la derivación.
+3. Revisa la pagina principal y cambia el periodo de las metricas.
+4. Selecciona una solicitud o usuario para abrir su ficha.
+5. Abre un caso pendiente desde la portada o desde `Atención Humana`.
+6. Verifica el banner de configuración (Twilio listo).
+7. Selecciona un contacto por nombre/teléfono y responde.
+8. Usa `Cerrar caso` cuando el asesor haya atendido la derivación.
 
 ## Problemas comunes
 

@@ -7,6 +7,7 @@ import streamlit as st
 
 from components.auth import require_auth
 from components.navigation import render_sidebar
+from components.ui import render_page_header
 from services.supabase_dashboard import (
     DashboardConfigError,
     obtener_estado_backend,
@@ -72,27 +73,25 @@ if "sim_phone" not in st.session_state:
 if "sim_messages" not in st.session_state:
     st.session_state["sim_messages"] = []
 
-st.markdown(
-    """
-    <div class="cb-hero">
-      <div class="cb-eyebrow">Laboratorio conversacional</div>
-      <div class="cb-hero-title">Simulador de chat</div>
-      <p class="cb-hero-subtitle">
-        Prueba la conversación completa contra el backend real, sin consumir créditos
-        de Twilio, Meta o Kapso.
-      </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
+render_page_header(
+    "Laboratorio conversacional",
+    "Simulador de chat",
+    "Prueba la conversación completa contra el backend real, sin consumir créditos de Twilio, Meta o Kapso.",
 )
 
 backend = obtener_estado_backend()
-status_col, phone_col, action_col = st.columns([1.15, 2.3, 1.15], vertical_alignment="bottom")
+status_col, phone_col, action_col = st.columns([1.3, 2.4, 1.15], vertical_alignment="bottom")
 with status_col:
     if backend["online"]:
-        st.success("Backend conectado")
+        st.markdown(
+            '<div class="cb-toolbar-status"><span class="cb-sidebar-live"></span><div><strong>Backend conectado</strong><small>Simulación disponible</small></div></div>',
+            unsafe_allow_html=True,
+        )
     else:
-        st.error("Backend sin conexión")
+        st.markdown(
+            '<div class="cb-toolbar-status cb-toolbar-error"><span class="cb-status-dot-error"></span><div><strong>Backend sin conexión</strong><small>Revisa el servicio FastAPI</small></div></div>',
+            unsafe_allow_html=True,
+        )
 with phone_col:
     st.text_input(
         "Identificador de prueba",
@@ -106,10 +105,24 @@ with action_col:
         st.session_state.pop("sim_error", None)
         st.rerun()
 
+if not backend["online"]:
+    if st.button("Reintentar conexión", width="stretch"):
+        obtener_estado_backend.clear()
+        st.rerun()
+
 st.markdown(_render_history(st.session_state["sim_messages"]), unsafe_allow_html=True)
 
 if st.session_state.get("sim_error"):
     st.error(st.session_state.pop("sim_error"))
+
+st.markdown('<div class="cb-section-title">Mensaje rápido</div>', unsafe_allow_html=True)
+starter_left, starter_right = st.columns(2)
+if starter_left.button("Hola", icon="👋", width="stretch"):
+    st.session_state["sim_draft"] = "Hola"
+    st.rerun()
+if starter_right.button("Quiero solicitar un crédito", icon="💳", width="stretch"):
+    st.session_state["sim_draft"] = "Quiero solicitar un crédito"
+    st.rerun()
 
 with st.form("simulator_message_form", clear_on_submit=True, border=False):
     input_col, send_col = st.columns([5.4, 1], vertical_alignment="bottom")
@@ -118,6 +131,7 @@ with st.form("simulator_message_form", clear_on_submit=True, border=False):
             "Mensaje",
             placeholder="Escribe un mensaje…",
             label_visibility="collapsed",
+            key="sim_draft",
         )
     with send_col:
         submitted = st.form_submit_button(
@@ -132,7 +146,8 @@ if submitted and message.strip():
         {"role": "user", "content": message.strip(), "time": now}
     )
     try:
-        reply = simular_mensaje(st.session_state["sim_phone"], message)
+        with st.spinner("CrediBot está preparando la respuesta…"):
+            reply = simular_mensaje(st.session_state["sim_phone"], message)
     except DashboardConfigError as exc:
         st.session_state["sim_error"] = str(exc)
     else:

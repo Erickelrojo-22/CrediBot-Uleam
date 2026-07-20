@@ -42,8 +42,9 @@ def test_render_reply_invoca_openai_si_esta_configurado(monkeypatch):
             return _FakeResponse()
 
     class _FakeClient:
-        def __init__(self, api_key):
+        def __init__(self, api_key, **kwargs):
             self.api_key = api_key
+            self.options = kwargs
             self.responses = _FakeResponses()
 
     monkeypatch.setattr(openai_agent.settings, "openai_enable_ai", True)

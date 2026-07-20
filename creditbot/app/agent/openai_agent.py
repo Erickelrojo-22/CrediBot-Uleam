@@ -83,7 +83,12 @@ def render_reply(
     try:
         from openai import OpenAI
 
-        client = OpenAI(api_key=settings.openai_api_key)
+        # El webhook no debe quedar bloqueado si la IA tarda o no está disponible.
+        client = OpenAI(
+            api_key=settings.openai_api_key,
+            timeout=settings.openai_request_timeout_seconds,
+            max_retries=0,
+        )
         response = client.responses.create(
             model=settings.openai_model,
             instructions=SYSTEM_PROMPT,

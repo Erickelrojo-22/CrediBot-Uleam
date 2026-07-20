@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-5.5"
     openai_embedding_model: str = "text-embedding-3-small"
     openai_enable_ai: bool = True
+    openai_request_timeout_seconds: float = 5.0
 
     # --- WhatsApp con Kapso ---
     whatsapp_provider: str = "kapso"

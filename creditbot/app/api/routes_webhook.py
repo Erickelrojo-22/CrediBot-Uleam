@@ -36,24 +36,31 @@ def _validate_kapso_signature(raw_body: bytes, signature_header: str | None) -> 
         raise HTTPException(status_code=403, detail="Firma de Kapso inválida.")
 
 
-def _send_reply(phone: str, reply: str) -> None:
+def _send_reply(phone: str, reply: str) -> bool:
+    """Envía una respuesta y señala si Kapso la aceptó para su entrega."""
     try:
         send_text_message(phone, reply)
+        return True
     except WhatsAppServiceError as exc:
         logger.error("No se pudo enviar mensaje a %s: %s", phone, exc)
+        return False
 
 
 def _already_processed(raw_payload: dict) -> bool:
-    """Evita responder dos veces cuando Kapso reintenta el mismo evento."""
+    """Indica si una entrega ya tuvo respuesta enviada con éxito."""
     message_id = str(raw_payload.get("id") or "").strip()
     if not message_id:
         return False
     key = f"kapso:processed:{message_id}"
     store = get_session_store()
-    if store.get_int(key):
-        return True
-    store.set_int(key, 1)
-    return False
+    return bool(store.get_int(key))
+
+
+def _mark_as_processed(raw_payload: dict) -> None:
+    """Marca el evento solo después de enviar la respuesta al cliente."""
+    message_id = str(raw_payload.get("id") or "").strip()
+    if message_id:
+        get_session_store().set_int(f"kapso:processed:{message_id}", 1)
 
 
 @router.get("/whatsapp")
@@ -85,8 +92,13 @@ async def receive_whatsapp_webhook(request: Request):
             continue
         reply = incoming.get("reply")
         if reply:
-            _send_reply(incoming["phone"], reply)
-            _send_reply(incoming["phone"], restart_after_non_text(incoming["phone"]))
+            first_sent = _send_reply(incoming["phone"], reply)
+            second_sent = _send_reply(
+                incoming["phone"], restart_after_non_text(incoming["phone"])
+            )
+            if not first_sent or not second_sent:
+                raise HTTPException(status_code=502, detail="No se pudo entregar la respuesta.")
+            _mark_as_processed(incoming["raw_payload"])
             continue
         else:
             reply = process_message(
@@ -94,5 +106,7 @@ async def receive_whatsapp_webhook(request: Request):
                 incoming["message"],
                 raw_payload=incoming["raw_payload"],
             )
-        _send_reply(incoming["phone"], reply)
+        if not _send_reply(incoming["phone"], reply):
+            raise HTTPException(status_code=502, detail="No se pudo entregar la respuesta.")
+        _mark_as_processed(incoming["raw_payload"])
     return {"status": "ok"}

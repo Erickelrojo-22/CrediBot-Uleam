@@ -362,7 +362,7 @@ def test_destino_libre_avanza_sin_agente_secundario(
     assert "comprar un yate" in reply.lower()
     mock_update_purpose.assert_called_once_with(REQUEST_ID, "Comprar un yate")
     mock_update_state.assert_called_once_with(CONVERSATION_ID, ASK_AMOUNT)
-    _mock_openai.assert_called_once()
+    _mock_openai.assert_not_called()
 
 
 @patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kw: kw["base_reply"])

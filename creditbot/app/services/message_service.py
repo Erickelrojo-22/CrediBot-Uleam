@@ -118,9 +118,13 @@ def ask_purpose_message() -> str:
 
 
 def purpose_acknowledged_message(purpose: str, name: str | None = None) -> str:
-    """Confirma un destino explicado en lenguaje natural y pide el monto."""
-    greeting = f"Gracias, {name}. " if name else ""
-    return f"{greeting}Entiendo que necesitas el crédito para {purpose}. ¿Qué monto deseas solicitar?"
+    """Reconoce el destino con contexto antes de solicitar el monto."""
+    greeting = f"Perfecto, {name}. " if name else "Perfecto. "
+    return (
+        f"{greeting}Entiendo que buscas un crédito para {purpose}. "
+        "Lo tomaré como el destino de tu solicitud. "
+        "Para continuar con la precalificación, ¿qué monto deseas solicitar?"
+    )
 
 
 def invalid_purpose_message() -> str:

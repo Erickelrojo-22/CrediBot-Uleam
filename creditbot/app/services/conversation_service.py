@@ -721,11 +721,11 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     if next_state not in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE}:
         response = message_service.with_handoff_hint(response)
 
-    # Una transición (por ejemplo, destino -> monto) ya fue interpretada y
-    # validada. Respondemos enseguida con el flujo seguro, sin una llamada de
-    # red a IA que pueda demorar el webhook de WhatsApp. La IA se mantiene para
-    # preguntas que no cambian de paso (RAG, explicaciones y reintentos).
-    if next_state == state:
+    # El destino ya se validó en la máquina de estados. En ese punto también
+    # permitimos que OpenAI lo redacte de forma personalizada (nombre + meta),
+    # siempre conservando la respuesta base si la IA no está disponible.
+    should_personalize_purpose = state == ASK_PURPOSE and next_state == ASK_AMOUNT
+    if next_state == state or should_personalize_purpose:
         response = openai_agent.render_reply(
             base_reply=response,
             state=next_state,

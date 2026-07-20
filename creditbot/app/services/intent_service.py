@@ -2,6 +2,8 @@
 import re
 import unicodedata
 
+from app.services.validation_service import parse_spanish_number
+
 
 def _normalize(value: str) -> str:
     """Normaliza texto para comparar intención sin depender de tildes."""
@@ -19,6 +21,12 @@ def menu_option_from_text(value: str) -> str | None:
     text = _normalize(value)
     if text in {"1", "2", "3"}:
         return text
+    try:
+        number = parse_spanish_number(text)
+        if number in {1, 2, 3}:
+            return str(number)
+    except ValueError:
+        pass
     # "persona" sola no cuenta (falso positivo con "persona natural")
     if _has_any(text, {"asesor", "humano", "agente", "ejecutivo"}):
         return "3"
@@ -36,6 +44,12 @@ def confirmation_from_text(value: str) -> str | None:
     text = _normalize(value)
     if text in {"1", "2"}:
         return text
+    try:
+        number = parse_spanish_number(text)
+        if number in {1, 2}:
+            return str(number)
+    except ValueError:
+        pass
     if _has_any(text, {"si", "acepto", "autorizo", "confirmo", "correcto", "ok"}):
         return "1"
     if _has_any(text, {"no", "rechazo", "cancelar", "corregir", "editar"}):
@@ -49,7 +63,11 @@ def looks_like_numeric_answer(value: str) -> bool:
         return False
     text = _normalize(value)
     if not re.search(r"\d", text):
-        return False
+        try:
+            parse_spanish_number(text)
+            return True
+        except ValueError:
+            return False
     # "12", "12 meses", "en 12 plazos", "$1.200", "1500 dolares"
     return bool(
         re.search(

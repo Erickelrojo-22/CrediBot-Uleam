@@ -1,6 +1,7 @@
 """Pruebas de detección de intención."""
 from app.services import intent_service
 from app.services import message_service
+from app.services import validation_service
 
 
 def test_menu_detecta_credito_en_lenguaje_natural():
@@ -11,12 +12,22 @@ def test_menu_detecta_credito_en_lenguaje_natural():
 def test_menu_detecta_info_y_asesor():
     assert intent_service.menu_option_from_text("quiero información de requisitos") == "2"
     assert intent_service.menu_option_from_text("hablar con una persona") == "3"
+    assert intent_service.menu_option_from_text("uno") == "1"
+    assert intent_service.menu_option_from_text("opcion dos") == "2"
 
 
 def test_confirmacion_detecta_si_y_no():
     assert intent_service.confirmation_from_text("sí autorizo") == "1"
     assert intent_service.confirmation_from_text("confirmo") == "1"
     assert intent_service.confirmation_from_text("no, quiero corregir") == "2"
+    assert intent_service.confirmation_from_text("uno") == "1"
+    assert intent_service.confirmation_from_text("dos") == "2"
+
+
+def test_validaciones_aceptan_numeros_escritos():
+    assert validation_service.parse_term_value("doce meses") == 12
+    assert validation_service.parse_numeric_value("quinientos dolares") == 500
+    assert validation_service.parse_numeric_value("mil doscientos") == 1200
 
 
 def test_detecta_pregunta_de_politicas():

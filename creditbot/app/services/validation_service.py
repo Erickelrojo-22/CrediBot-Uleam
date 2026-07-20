@@ -1,7 +1,49 @@
 """Funciones de validación de entrada del usuario."""
 import re
+import unicodedata
 
 from app.domain.cedula_validator import validate_cedula as _validate_cedula
+
+
+_NUMBER_WORDS = {
+    "cero": 0, "un": 1, "uno": 1, "una": 1, "dos": 2, "tres": 3,
+    "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7, "ocho": 8, "nueve": 9,
+    "diez": 10, "once": 11, "doce": 12, "trece": 13, "catorce": 14,
+    "quince": 15, "dieciseis": 16, "diecisiete": 17, "dieciocho": 18,
+    "diecinueve": 19, "veinte": 20, "veintiuno": 21, "veintidos": 22,
+    "veintitres": 23, "veinticuatro": 24, "veinticinco": 25, "veintiseis": 26,
+    "veintisiete": 27, "veintiocho": 28, "veintinueve": 29, "treinta": 30,
+    "cuarenta": 40, "cincuenta": 50, "sesenta": 60, "setenta": 70,
+    "ochenta": 80, "noventa": 90, "cien": 100, "ciento": 100,
+    "doscientos": 200, "trescientos": 300, "cuatrocientos": 400,
+    "quinientos": 500, "seiscientos": 600, "setecientos": 700,
+    "ochocientos": 800, "novecientos": 900,
+}
+
+
+def parse_spanish_number(value: str) -> int:
+    """Extrae un número entero escrito en español, hasta miles."""
+    text = unicodedata.normalize("NFKD", value or "")
+    text = "".join(char for char in text if not unicodedata.combining(char)).lower()
+    tokens = re.findall(r"[a-z]+", text)
+    allowed_context = {"y", "mil", "dolar", "dolares", "usd", "mes", "meses", "plazo", "plazos", "opcion", "numero"}
+    if not tokens or any(token not in _NUMBER_WORDS and token not in allowed_context for token in tokens):
+        raise ValueError("No se encontró un número escrito.")
+    total = current = 0
+    found = False
+    for token in tokens:
+        if token == "y":
+            continue
+        if token == "mil":
+            total += max(current, 1) * 1000
+            current = 0
+            found = True
+        elif token in _NUMBER_WORDS:
+            current += _NUMBER_WORDS[token]
+            found = True
+    if not found:
+        raise ValueError("No se encontró un número escrito.")
+    return total + current
 
 
 def validate_cedula(value: str) -> tuple[bool, str | None]:
@@ -25,7 +67,10 @@ def parse_numeric_value(value: str) -> float:
         integer_part, fractional_part = cleaned.rsplit(".", 1)
         if len(fractional_part) == 3 and integer_part.replace(".", "").isdigit():
             cleaned = cleaned.replace(".", "")
-    return float(cleaned)
+    try:
+        return float(cleaned)
+    except ValueError:
+        return float(parse_spanish_number(value))
 
 
 def parse_term_value(value: str) -> int:
@@ -37,6 +82,7 @@ def parse_term_value(value: str) -> int:
         pass
     match = re.search(r"(\d{1,2})", cleaned)
     if not match:
+        return parse_spanish_number(value)
         raise ValueError("No se encontró un plazo numérico.")
     return int(match.group(1))
 

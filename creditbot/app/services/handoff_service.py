@@ -8,6 +8,7 @@ from app.repositories import (
     message_repository,
     user_repository,
 )
+from app.services import message_service
 from app.services.whatsapp_service import WhatsAppServiceError, send_text_message
 
 REASON_LABELS = {
@@ -80,17 +81,57 @@ def get_open_handoff_case_for_user(user_id: str) -> dict[str, Any] | None:
     return handoff_repository.get_open_handoff_case_by_user(user_id)
 
 
-def close_handoff_case(case_id: str) -> dict[str, Any]:
-    """Cierra un caso de derivación."""
+def close_handoff_case(case_id: str, *, notify_client: bool = True) -> dict[str, Any]:
+    """Cierra un caso y, desde el panel, confirma el cierre al cliente."""
     case = handoff_repository.get_handoff_case_by_id(case_id)
     if not case:
         raise ValueError("Caso de derivación no encontrado.")
     if case.get("status") == "closed":
         return case
-    closed = handoff_repository.close_handoff_case(case_id)
-    conversation_id = case.get("conversation_id")
+
+    conversation_id = str(case["conversation_id"]) if case.get("conversation_id") else ""
+    user_id = str(case["user_id"]) if case.get("user_id") else ""
+
+    if notify_client:
+        user = user_repository.get_user_by_id(user_id) if user_id else None
+        if not user or not user.get("phone"):
+            raise ValueError("El caso no tiene un teléfono de cliente asociado.")
+
+        message = message_service.handoff_closed_message()
+        try:
+            provider_response = send_text_message(str(user["phone"]), message)
+        except WhatsAppServiceError as exc:
+            raise RuntimeError(str(exc)) from exc
+
+        message_repository.save_outbound_message(
+            conversation_id=conversation_id,
+            user_id=user_id,
+            content=message,
+            raw_payload={
+                "source": "dashboard_case_closed",
+                "provider_response": provider_response,
+            },
+        )
+        transcript = case.get("transcript") if isinstance(case.get("transcript"), list) else []
+        transcript = list(transcript)
+        transcript.append(
+            {
+                "direction": "outbound",
+                "content": message,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "source": "dashboard_case_closed",
+            }
+        )
+        closed = handoff_repository.update_handoff_case(
+            case_id,
+            status="closed",
+            transcript=transcript[-20:],
+        )
+    else:
+        closed = handoff_repository.close_handoff_case(case_id)
+
     if conversation_id:
-        conversation_repository.finish_conversation(str(conversation_id))
+        conversation_repository.finish_conversation(conversation_id)
     return closed
 
 

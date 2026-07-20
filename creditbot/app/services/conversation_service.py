@@ -139,18 +139,38 @@ def _request_handoff(
     return response
 
 
-def _append_handoff_transcript(case_id: str, case: dict[str, Any], text: str) -> None:
-    """Agrega un mensaje entrante al transcript del caso para el panel."""
+def _append_handoff_transcript(
+    case_id: str,
+    case: dict[str, Any],
+    text: str,
+    *,
+    direction: str = "inbound",
+    source: str | None = None,
+) -> list[dict[str, Any]]:
+    """Agrega un mensaje al transcript del caso y retorna el historial actualizado."""
     transcript = case.get("transcript") if isinstance(case.get("transcript"), list) else []
     transcript = list(transcript)
-    transcript.append(
-        {
-            "direction": "inbound",
-            "content": text,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-        }
+    item: dict[str, Any] = {
+        "direction": direction,
+        "content": text,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if source:
+        item["source"] = source
+    transcript.append(item)
+    updated_transcript = transcript[-20:]
+    handoff_repository.update_handoff_case(case_id, transcript=updated_transcript)
+    return updated_transcript
+
+
+def _handoff_waiting_message_was_sent(case: dict[str, Any]) -> bool:
+    """Evita confirmar en cada mensaje que el caso ya está en la bandeja humana."""
+    transcript = case.get("transcript") if isinstance(case.get("transcript"), list) else []
+    return any(
+        item.get("source") == "credibot_handoff_waiting"
+        for item in transcript
+        if isinstance(item, dict)
     )
-    handoff_repository.update_handoff_case(case_id, transcript=transcript[-20:])
 
 
 def _process_open_handoff_message(
@@ -170,7 +190,7 @@ def _process_open_handoff_message(
     )
 
     if intent_service.is_restart_command(text):
-        handoff_service.close_handoff_case(str(open_handoff["id"]))
+        handoff_service.close_handoff_case(str(open_handoff["id"]), notify_client=False)
         conversation_repository.finish_conversation(conversation_id)
         _reset_validation_failures(conversation_id)
         new_conversation = conversation_repository.get_or_create_active_conversation(user_id)
@@ -182,8 +202,19 @@ def _process_open_handoff_message(
         message_repository.save_outbound_message(new_id, user_id, response)
         return response
 
-    _append_handoff_transcript(str(open_handoff["id"]), open_handoff, text)
+    transcript = _append_handoff_transcript(str(open_handoff["id"]), open_handoff, text)
+    if _handoff_waiting_message_was_sent(open_handoff):
+        conversation_repository.update_state(conversation_id, HANDOFF_REQUESTED)
+        return ""
+
     response = message_service.handoff_waiting_message()
+    _append_handoff_transcript(
+        str(open_handoff["id"]),
+        {**open_handoff, "transcript": transcript},
+        response,
+        direction="outbound",
+        source="credibot_handoff_waiting",
+    )
     conversation_repository.update_state(conversation_id, HANDOFF_REQUESTED)
     conversation_repository.update_last_message(conversation_id, response)
     message_repository.save_outbound_message(conversation_id, user_id, response)

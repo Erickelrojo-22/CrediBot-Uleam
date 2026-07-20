@@ -75,6 +75,8 @@ def close_handoff(
         case = close_handoff_case(case_id)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
     return {"status": "ok", "case": case}
 
 

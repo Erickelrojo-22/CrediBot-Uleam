@@ -244,9 +244,16 @@ def preapproved_message(data: dict) -> str:
 
 def observed_message(data: dict) -> str:
     """Mensaje de resultado observado (requiere revisión de asesor)."""
+    capacity_note = ""
+    if data.get("motivo") == "sin_capacidad_pago":
+        capacity_note = (
+            "Con el ingreso y las cuotas vigentes registradas no hay capacidad de pago "
+            "disponible para una oferta automática.\n"
+        )
     return (
         "Resultado: Observado.\n"
         f"{_result_details(data)}\n"
+        f"{capacity_note}"
         "Un asesor revisará tu caso y se comunicará contigo."
     )
 
@@ -281,6 +288,11 @@ def handoff_waiting_message() -> str:
     return (
         "Recibimos tu mensaje. Un asesor humano te responderá pronto por este mismo chat."
     )
+
+
+def handoff_closed_message() -> str:
+    """Confirma al cliente que el asesor cerró su caso."""
+    return "Tu caso se ha cerrado exitosamente. Gracias."
 
 
 def finished_message() -> str:

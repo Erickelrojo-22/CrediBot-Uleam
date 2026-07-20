@@ -619,4 +619,42 @@ def test_open_handoff_message_stays_on_same_conversation(
     mock_get_conversation.assert_not_called()
     mock_reactivate.assert_called_once_with(CONVERSATION_ID, "HANDOFF_REQUESTED")
     mock_save_inbound.assert_called_once()
+    assert mock_update_handoff_case.call_count == 2
+
+
+@patch("app.services.conversation_service.handoff_repository.update_handoff_case")
+@patch("app.services.conversation_service.handoff_service.get_open_handoff_case_for_user")
+@patch("app.services.conversation_service.conversation_repository.get_conversation_by_id")
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_open_handoff_only_sends_waiting_confirmation_once(
+    mock_get_user,
+    mock_update_state,
+    mock_save_inbound,
+    mock_save_outbound,
+    mock_get_conversation_by_id,
+    mock_get_open_handoff,
+    mock_update_handoff_case,
+):
+    mock_get_user.return_value = _base_user()
+    mock_get_open_handoff.return_value = {
+        "id": "case-1",
+        "conversation_id": CONVERSATION_ID,
+        "transcript": [
+            {
+                "direction": "outbound",
+                "content": "Recibimos tu mensaje.",
+                "source": "credibot_handoff_waiting",
+            }
+        ],
+    }
+    mock_get_conversation_by_id.return_value = _base_conversation("HANDOFF_REQUESTED")
+
+    reply = process_message("593999999999", "Sigo con una consulta")
+
+    assert reply == ""
+    mock_save_inbound.assert_called_once()
+    mock_save_outbound.assert_not_called()
     mock_update_handoff_case.assert_called_once()

@@ -149,11 +149,20 @@ def calcular_monto_maximo(
     }
 
 
-def _clasificar_resultado(categoria: str, cuota: float, capacidad: float) -> str:
+def _clasificar_resultado(
+    categoria: str,
+    cuota: float,
+    capacidad: float,
+    monto_evaluado: float,
+) -> str:
     """Aplica la tabla de resultados de la sección 14.6."""
     if categoria == SCORE_HIGH_RISK:
         return CREDIT_RESULT_NOT_QUALIFIED
     if categoria == SCORE_REGULAR:
+        return CREDIT_RESULT_OBSERVED
+    # Una cuota de $0 no puede considerarse aprobada: ocurre cuando el
+    # cliente no tiene capacidad disponible después de sus cuotas actuales.
+    if capacidad <= 0 or monto_evaluado <= 0:
         return CREDIT_RESULT_OBSERVED
     if cuota <= capacidad and categoria in (SCORE_EXCELLENT, SCORE_ACCEPTABLE):
         return CREDIT_RESULT_PREAPPROVED
@@ -212,12 +221,13 @@ def precalificar(
         monto_evaluado = round(min(monto_solicitado, monto_maximo), 2)
 
     cuota = calcular_cuota(monto_evaluado, tea, plazo_meses)
-    result = _clasificar_resultado(categoria, cuota, capacidad)
+    result = _clasificar_resultado(categoria, cuota, capacidad, monto_evaluado)
+    motivo = "sin_capacidad_pago" if capacidad <= 0 or monto_evaluado <= 0 else None
 
     return {
         "elegible": True,
         "categoria": categoria,
-        "motivo": None,
+        "motivo": motivo,
         "result": result,
         "tea": tea,
         "capacidad_pago": capacidad,

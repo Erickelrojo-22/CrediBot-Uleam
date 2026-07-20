@@ -220,7 +220,48 @@ def test_close_handoff_case_finaliza_conversacion(monkeypatch):
         fake_finish,
     )
 
-    result = handoff_service.close_handoff_case("case-1")
+    result = handoff_service.close_handoff_case("case-1", notify_client=False)
 
     assert result["status"] == "closed"
     assert finished["conversation_id"] == "conv-1"
+
+
+def test_close_handoff_case_notifica_al_cliente(monkeypatch):
+    monkeypatch.setattr(
+        handoff_service.handoff_repository,
+        "get_handoff_case_by_id",
+        lambda case_id: {
+            "id": case_id,
+            "status": "assigned",
+            "user_id": "user-1",
+            "conversation_id": "conv-1",
+            "transcript": [],
+        },
+    )
+    monkeypatch.setattr(
+        handoff_service.user_repository,
+        "get_user_by_id",
+        lambda user_id: {"id": user_id, "phone": "593999000111"},
+    )
+    monkeypatch.setattr(handoff_service, "send_text_message", lambda phone, message: {"id": "sent"})
+    saved = {}
+    monkeypatch.setattr(
+        handoff_service.message_repository,
+        "save_outbound_message",
+        lambda **kwargs: saved.update(kwargs) or {"id": "message-1"},
+    )
+    monkeypatch.setattr(
+        handoff_service.handoff_repository,
+        "update_handoff_case",
+        lambda case_id, **kwargs: {"id": case_id, "status": kwargs["status"]},
+    )
+    monkeypatch.setattr(
+        handoff_service.conversation_repository,
+        "finish_conversation",
+        lambda conversation_id: {"id": conversation_id, "is_active": False},
+    )
+
+    result = handoff_service.close_handoff_case("case-1")
+
+    assert result["status"] == "closed"
+    assert saved["content"] == "Tu caso se ha cerrado exitosamente. Gracias."

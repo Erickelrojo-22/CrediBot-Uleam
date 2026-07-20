@@ -144,3 +144,17 @@ def test_precalificar_mora_no_elegible():
 def test_precalificar_monto_solicitado_acotado_al_maximo():
     resultado = credit_rules.precalificar(820, 1200, 24, monto_solicitado=999999)
     assert resultado["monto_evaluado"] == resultado["monto_maximo"]
+
+
+def test_precalificar_sin_capacidad_no_se_preaprueba_por_tener_cuota_cero():
+    resultado = credit_rules.precalificar(
+        900,
+        400,
+        5,
+        cuotas_actuales=180,
+        monto_solicitado=1000,
+    )
+
+    assert resultado["result"] == CREDIT_RESULT_OBSERVED
+    assert resultado["monto_maximo"] == 0.0
+    assert resultado["motivo"] == "sin_capacidad_pago"

@@ -106,7 +106,9 @@ async def receive_whatsapp_webhook(request: Request):
                 incoming["message"],
                 raw_payload=incoming["raw_payload"],
             )
-        if not _send_reply(incoming["phone"], reply):
+        # Un caso ya derivado se registra en el panel sin reenviar la misma
+        # confirmación al cliente para cada mensaje que escriba.
+        if reply and not _send_reply(incoming["phone"], reply):
             raise HTTPException(status_code=502, detail="No se pudo entregar la respuesta.")
         _mark_as_processed(incoming["raw_payload"])
     return {"status": "ok"}

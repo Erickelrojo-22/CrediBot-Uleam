@@ -7,6 +7,7 @@ from app.services import validation_service
 def test_menu_detecta_credito_en_lenguaje_natural():
     assert intent_service.menu_option_from_text("Quiero solicitar un crédito") == "1"
     assert intent_service.menu_option_from_text("necesito un prestamo") == "1"
+    assert intent_service.loan_purpose_from_text("quiero un crédito para comprar un yate") == "comprar un yate"
 
 
 def test_menu_detecta_info_y_asesor():

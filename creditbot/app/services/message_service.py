@@ -117,6 +117,12 @@ def ask_purpose_message() -> str:
     return "¿Para qué necesitas el crédito? Por ejemplo: estudios, negocio, consumo o emergencia."
 
 
+def purpose_acknowledged_message(purpose: str, name: str | None = None) -> str:
+    """Confirma un destino explicado en lenguaje natural y pide el monto."""
+    greeting = f"Gracias, {name}. " if name else ""
+    return f"{greeting}Entiendo que necesitas el crédito para {purpose}. ¿Qué monto deseas solicitar?"
+
+
 def invalid_purpose_message() -> str:
     """Mensaje de error para destino de crédito inválido."""
     return (

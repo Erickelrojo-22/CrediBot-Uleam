@@ -434,8 +434,13 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             next_state = MENU
         elif menu_option == "1":
             _reset_validation_failures(conversation_id)
-            credit_repository.create_draft_request(user_id, conversation_id)
-            response = message_service.ask_consent_message()
+            draft = credit_repository.create_draft_request(user_id, conversation_id)
+            purpose = intent_service.loan_purpose_from_text(text)
+            if purpose and draft:
+                credit_repository.update_purpose(draft["id"], purpose)
+                response = f"Entiendo que deseas un crédito para {purpose}.\n\n" + message_service.ask_consent_message()
+            else:
+                response = message_service.ask_consent_message()
             next_state = CONSENT
         elif menu_option == "2":
             _reset_validation_failures(conversation_id)
@@ -534,10 +539,14 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
                         str(verification.get("categoria")),
                         verification.get("credit_score"),
                     )
-                    + "\n\n"
-                    + message_service.ask_purpose_message()
                 )
-                next_state = ASK_PURPOSE
+                saved_purpose = (request or {}).get("loan_purpose")
+                if saved_purpose:
+                    response += "\n\n" + message_service.purpose_acknowledged_message(str(saved_purpose), name)
+                    next_state = ASK_AMOUNT
+                else:
+                    response += "\n\n" + message_service.ask_purpose_message()
+                    next_state = ASK_PURPOSE
 
     elif state == ASK_PURPOSE:
         is_valid, _ = validation_service.validate_purpose(text)
@@ -557,7 +566,9 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
             request = credit_repository.get_draft_request(conversation_id)
             if request:
                 credit_repository.update_purpose(request["id"], text.strip())
-            response = message_service.ask_amount_message(user.get("full_name"))
+            response = message_service.purpose_acknowledged_message(
+                text.strip(), user.get("full_name")
+            )
             next_state = ASK_AMOUNT
 
     elif state == ASK_AMOUNT:

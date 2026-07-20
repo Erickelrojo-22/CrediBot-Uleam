@@ -39,6 +39,16 @@ def menu_option_from_text(value: str) -> str | None:
     return None
 
 
+def loan_purpose_from_text(value: str) -> str | None:
+    """Extrae un destino expresado junto con una solicitud de crédito."""
+    raw = " ".join((value or "").strip().split())
+    match = re.search(r"\b(?:credito|crédito|prestamo|préstamo)\b.*?\bpara\s+(.+)", raw, re.IGNORECASE)
+    if not match:
+        return None
+    purpose = match.group(1).strip(" .,!?")
+    return purpose if len(purpose) >= 3 else None
+
+
 def confirmation_from_text(value: str) -> str | None:
     """Convierte confirmaciones naturales a 1 (sí) o 2 (no)."""
     text = _normalize(value)

@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from app.core.config import settings
 from app.providers.whatsapp.kapso import extract_kapso_messages
 from app.services.conversation_service import process_message, restart_after_non_text
+from app.services.session_store import get_session_store
 from app.services.whatsapp_service import WhatsAppServiceError, send_text_message
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,19 @@ def _send_reply(phone: str, reply: str) -> None:
         logger.error("No se pudo enviar mensaje a %s: %s", phone, exc)
 
 
+def _already_processed(raw_payload: dict) -> bool:
+    """Evita responder dos veces cuando Kapso reintenta el mismo evento."""
+    message_id = str(raw_payload.get("id") or "").strip()
+    if not message_id:
+        return False
+    key = f"kapso:processed:{message_id}"
+    store = get_session_store()
+    if store.get_int(key):
+        return True
+    store.set_int(key, 1)
+    return False
+
+
 @router.get("/whatsapp")
 async def whatsapp_webhook_get():
     """Devuelve el estado de la ruta que debe registrarse en Kapso."""
@@ -67,6 +81,8 @@ async def receive_whatsapp_webhook(request: Request):
         return {"status": "ignored"}
 
     for incoming in extract_kapso_messages(payload):
+        if _already_processed(incoming["raw_payload"]):
+            continue
         reply = incoming.get("reply")
         if reply:
             _send_reply(incoming["phone"], reply)

@@ -79,7 +79,9 @@ def test_webhook_kapso_rechaza_firma_invalida(monkeypatch):
 
 def test_webhook_kapso_responde_a_audio_sin_alterar_el_flujo(monkeypatch):
     from app.api import routes_webhook
+    from app.services.session_store import reset_session_store
 
+    reset_session_store()
     secret = "kapso-webhook-test"
     monkeypatch.setattr(routes_webhook.settings, "kapso_webhook_secret", secret)
     monkeypatch.setattr(routes_webhook.settings, "kapso_validate_webhook_signature", True)
@@ -104,8 +106,14 @@ def test_webhook_kapso_responde_a_audio_sin_alterar_el_flujo(monkeypatch):
         content=raw_body,
         headers={"X-Webhook-Event": "whatsapp.message.received", "X-Webhook-Signature": _signature(secret, raw_body)},
     )
+    duplicate_response = TestClient(app).post(
+        "/webhook/whatsapp",
+        content=raw_body,
+        headers={"X-Webhook-Event": "whatsapp.message.received", "X-Webhook-Signature": _signature(secret, raw_body)},
+    )
 
     assert response.status_code == 200
+    assert duplicate_response.status_code == 200
     assert process_calls == []
     assert sent == [
         ("593999000111", "Por favor, envíame tu mensaje como texto. Puedo entenderte mejor cuando escribes."),

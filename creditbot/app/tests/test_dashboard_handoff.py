@@ -55,20 +55,18 @@ class _FakeClient:
         return _FakeQuery(self._recorder)
 
 
-def test_obtener_estado_configuracion_twilio(monkeypatch):
+def test_obtener_estado_configuracion_backend(monkeypatch):
     monkeypatch.setattr(supabase_dashboard, "_get_env_value", lambda name: {
         "SUPABASE_URL": "https://x.supabase.co",
         "SUPABASE_SERVICE_ROLE_KEY": "key",
-        "TWILIO_ACCOUNT_SID": "AC123",
-        "TWILIO_AUTH_TOKEN": "token",
-        "TWILIO_WHATSAPP_FROM": "whatsapp:+14155238886",
+        "BACKEND_API_URL": "https://api.test",
+        "ADMIN_DASHBOARD_PASSWORD": "secret",
     }.get(name, ""))
 
     config = supabase_dashboard.obtener_estado_configuracion()
     assert config["supabase"] is True
-    assert config["twilio"] is True
     assert config["can_reply"] is True
-    assert config["reply_mode"] == "twilio_direct"
+    assert config["reply_mode"] == "backend_api"
 
 
 def test_cerrar_caso_derivado_actualiza_estado(monkeypatch):
@@ -108,48 +106,6 @@ def test_obtener_mensajes_conversacion_lee_historial(monkeypatch):
     assert recorder["order"] == ("created_at", False)
 
 
-def test_enviar_respuesta_humana_twilio_directo(monkeypatch):
-    recorder = {}
-
-    monkeypatch.setattr(
-        supabase_dashboard,
-        "obtener_estado_configuracion",
-        lambda: {
-            "supabase": True,
-            "twilio": True,
-            "backend_api": False,
-            "can_reply": True,
-            "reply_mode": "twilio_direct",
-            "backend_url": "",
-        },
-    )
-    monkeypatch.setattr(
-        supabase_dashboard,
-        "_send_twilio_whatsapp_message",
-        lambda phone, message: {"sid": "SM123", "status": "queued"},
-    )
-    monkeypatch.setattr(
-        supabase_dashboard,
-        "get_supabase_client",
-        lambda: _FakeClient(recorder),
-    )
-
-    result = supabase_dashboard.enviar_respuesta_humana(
-        case_id="case-1",
-        conversation_id="conv-1",
-        user_id="user-1",
-        phone="593999000111",
-        content="Hola, soy el asesor.",
-    )
-
-    assert result["direction"] == "outbound"
-    assert result["content"] == "Hola, soy el asesor."
-    assert result["raw_payload"]["source"] == "dashboard_human"
-    assert result["raw_payload"]["channel"] == "twilio_direct"
-    assert recorder["table"] == "handoff_cases"
-    assert recorder["payload"]["status"] == "assigned"
-
-
 def test_enviar_respuesta_humana_backend_fallback(monkeypatch):
     calls = {}
 
@@ -171,7 +127,6 @@ def test_enviar_respuesta_humana_backend_fallback(monkeypatch):
         "obtener_estado_configuracion",
         lambda: {
             "supabase": True,
-            "twilio": False,
             "backend_api": True,
             "can_reply": True,
             "reply_mode": "backend_api",

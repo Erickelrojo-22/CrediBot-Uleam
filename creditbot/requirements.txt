@@ -7,7 +7,6 @@ pydantic-settings
 supabase
 httpx
 openai
-twilio
 redis
 streamlit
 pandas

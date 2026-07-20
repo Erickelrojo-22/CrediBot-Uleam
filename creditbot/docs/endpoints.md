@@ -2,60 +2,20 @@
 
 ## Salud
 
-### `GET /health`
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/health` | Estado general del backend. |
+| `GET` | `/health/ai` | Estado de la capa de IA sin exponer la clave. |
+| `GET` | `/health/whatsapp` | Estado de Kapso y variables faltantes sin exponer secretos. |
 
-Verifica que el servidor esté activo.
-
-**Respuesta:**
-
-```json
-{
-  "status": "ok",
-  "app": "CrediBot"
-}
-```
-
-### `GET /health/ai`
-
-Verifica si la capa de IA está habilitada y configurada sin exponer la API key.
-
-**Respuesta:**
-
-```json
-{
-  "status": "ok",
-  "enabled": true,
-  "configured": true,
-  "model": "gpt-5.5"
-}
-```
-
-### `GET /health/whatsapp`
-
-Indica si Twilio/Meta está configurado (sin exponer secretos).
-
-**Respuesta (ejemplo):**
-
-```json
-{
-  "status": "ok",
-  "provider": "twilio",
-  "configured": true,
-  "missing_env": [],
-  "app_public_url_set": true,
-  "twilio_validate_signature": true,
-  "redis_configured": false,
-  "webhook_path": "/webhook/whatsapp"
-}
-```
+`/health/whatsapp` devuelve, entre otros, `provider: "kapso"`, `configured`,
+`missing_env` y `webhook_path`.
 
 ## Simulador local
 
 ### `POST /simulate/message`
 
-Permite probar el bot sin Twilio.
-
-**Body:**
+Prueba el flujo sin enviar mensajes de WhatsApp.
 
 ```json
 {
@@ -64,83 +24,35 @@ Permite probar el bot sin Twilio.
 }
 ```
 
-**Respuesta:**
-
-```json
-{
-  "phone": "593999999999",
-  "reply": "Hola, soy CrediBot..."
-}
-```
-
-## Webhook de WhatsApp (Twilio / Meta)
+## Webhook de Kapso
 
 ### `GET /webhook/whatsapp`
 
-- Sin query: estado del endpoint y proveedor activo (`WHATSAPP_PROVIDER`).
-- Con `hub.mode=subscribe` + `hub.verify_token` + `hub.challenge`: verificación de Meta Cloud API.
+Indica que la ruta está lista para ser registrada en Kapso.
 
 ### `POST /webhook/whatsapp`
 
-**Twilio** — `application/x-www-form-urlencoded`
+Recibe el evento nativo `whatsapp.message.received` de Kapso. Debe incluir:
 
-Campos principales:
+- `Content-Type: application/json`
+- `X-Webhook-Event: whatsapp.message.received`
+- `X-Webhook-Signature`: HMAC SHA-256 del cuerpo con `KAPSO_WEBHOOK_SECRET`
 
-| Campo | Ejemplo |
-|---|---|
-| `From` | `whatsapp:+593999999999` |
-| `Body` | `Hola` |
-| `MessageSid` | `SMxxxxxxxx` |
-
-**Meta** — `application/json` (payload estándar de WhatsApp Cloud API).
-
-Si `META_WHATSAPP_APP_SECRET` está definido, se valida `X-Hub-Signature-256`.
-
-**Configuración:**
-
-- URL: `https://tu-dominio.com/webhook/whatsapp`
-- Método: `POST` (y verificación GET para Meta)
-
+El endpoint acepta mensajes de texto individuales y lotes de Kapso. Los demás eventos
+se reconocen y se ignoran sin afectar la conversación.
 
 ## Administración
 
-### `GET /admin/requests`
+Las rutas administrativas requieren el encabezado
+`X-Admin-Password: <ADMIN_DASHBOARD_PASSWORD>`.
 
-Lista solicitudes de crédito registradas.
+| Método | Ruta | Uso |
+|---|---|---|
+| `GET` | `/admin/requests` | Solicitudes de crédito. |
+| `GET` | `/admin/handoff` | Casos abiertos de asesoría. |
+| `POST` | `/admin/handoff/{case_id}/reply` | Envía la respuesta del asesor mediante Kapso. |
+| `POST` | `/admin/handoff/{case_id}/close` | Cierra el caso. |
+| `GET` | `/admin/conversations/{phone}` | Usuario, conversación e historial. |
 
-### `GET /admin/handoff`
-
-Lista casos abiertos de derivación (pending/assigned).
-
-### `POST /admin/handoff/{case_id}/reply`
-
-Envía la respuesta del asesor por WhatsApp (Meta o Twilio según `WHATSAPP_PROVIDER`).
-
-**Header:** `X-Admin-Password: <ADMIN_DASHBOARD_PASSWORD>`
-
-**Body:**
-
-```json
-{ "message": "Hola, soy el asesor. Revisaré tu caso." }
-```
-
-### `POST /admin/handoff/{case_id}/close`
-
-Cierra el caso. Requiere el mismo header `X-Admin-Password`.
-
-### `GET /admin/conversations/{phone}`
-
-Devuelve usuario, conversación e historial de mensajes por teléfono.
-
-**Ejemplo:**
-
-```http
-GET /admin/conversations/593999999999
-```
-
-## Documentación interactiva
-
-Con el servidor levantado:
-
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+Con el servidor levantado, la documentación interactiva está disponible en
+`/docs` y `/redoc`.

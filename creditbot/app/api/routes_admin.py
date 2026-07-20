@@ -50,7 +50,7 @@ def reply_handoff_case(
     body: HandoffReplyRequest,
     _: None = Depends(require_admin_password),
 ):
-    """Envía una respuesta humana por WhatsApp (Meta/Twilio según proveedor)."""
+    """Envía una respuesta humana por WhatsApp mediante Kapso."""
     try:
         result = reply_as_advisor(case_id, body.message)
     except ValueError as exc:

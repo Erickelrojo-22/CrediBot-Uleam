@@ -246,7 +246,7 @@ def root():
               <h2><span class="status-dot"></span>Backend activo</h2>
               <p>
                 Usa esta pantalla para presentar el proyecto sin depender de mensajes
-                reales de WhatsApp ni gastar pruebas de Twilio.
+                reales de WhatsApp ni consumir mensajes de Kapso.
               </p>
               <div class="routes">
                 <div class="route"><strong>Webhook</strong><span>/webhook/whatsapp</span></div>

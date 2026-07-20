@@ -236,23 +236,18 @@ def _render_detail_item(label: str, value: str) -> None:
 
 
 def _render_config_status() -> None:
-    """Muestra si Twilio/Supabase están listos para responder."""
+    """Muestra si el backend Kapso y Supabase están listos para responder."""
     config = obtener_estado_configuracion()
     if config["can_reply"]:
-        mode = "Twilio directo" if config["reply_mode"] == "twilio_direct" else "Backend API"
-        st.success(f"Listo para responder por WhatsApp ({mode}).")
+        st.success("Listo para responder por WhatsApp mediante Kapso.")
         return
 
     missing: list[str] = []
     if not config["supabase"]:
         missing.append("Supabase (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY)")
-    if not config["twilio"]:
-        missing.append(
-            "Twilio en el panel (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM)"
-        )
     if not config["backend_api"]:
         missing.append(
-            "o backend con Twilio (BACKEND_API_URL + ADMIN_DASHBOARD_PASSWORD en Render)"
+            "backend con Kapso (BACKEND_API_URL + ADMIN_DASHBOARD_PASSWORD)"
         )
     st.warning(
         "Aún no puedes enviar WhatsApp desde el panel. Configura: "

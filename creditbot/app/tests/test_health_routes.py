@@ -41,12 +41,12 @@ def test_ai_health_no_expone_api_key(monkeypatch):
 def test_whatsapp_health_sin_secretos(monkeypatch):
     from app.api import routes_health
 
-    monkeypatch.setattr(routes_health.settings, "whatsapp_provider", "twilio")
-    monkeypatch.setattr(routes_health.settings, "twilio_account_sid", "ACtest")
-    monkeypatch.setattr(routes_health.settings, "twilio_auth_token", "token")
-    monkeypatch.setattr(routes_health.settings, "twilio_whatsapp_from", "whatsapp:+14155238886")
+    monkeypatch.setattr(routes_health.settings, "whatsapp_provider", "kapso")
+    monkeypatch.setattr(routes_health.settings, "kapso_api_key", "kapso-key")
+    monkeypatch.setattr(routes_health.settings, "kapso_phone_number_id", "phone-id")
+    monkeypatch.setattr(routes_health.settings, "kapso_webhook_secret", "webhook-secret")
     monkeypatch.setattr(routes_health.settings, "app_public_url", "https://example.com")
-    monkeypatch.setattr(routes_health.settings, "twilio_validate_signature", True)
+    monkeypatch.setattr(routes_health.settings, "kapso_validate_webhook_signature", True)
     monkeypatch.setattr(routes_health.settings, "redis_url", "")
 
     client = TestClient(app)
@@ -55,8 +55,8 @@ def test_whatsapp_health_sin_secretos(monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
-    assert body["provider"] == "twilio"
+    assert body["provider"] == "kapso"
     assert body["configured"] is True
     assert body["missing_env"] == []
     assert body["webhook_path"] == "/webhook/whatsapp"
-    assert "token" not in response.text
+    assert "kapso-key" not in response.text

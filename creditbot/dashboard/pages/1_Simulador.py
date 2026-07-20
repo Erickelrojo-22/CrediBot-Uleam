@@ -76,7 +76,7 @@ if "sim_messages" not in st.session_state:
 render_page_header(
     "Laboratorio conversacional",
     "Simulador de chat",
-    "Prueba la conversación completa contra el backend real, sin consumir créditos de Twilio, Meta o Kapso.",
+    "Prueba la conversación completa contra el backend real, sin consumir mensajes de Kapso.",
 )
 
 backend = obtener_estado_backend()

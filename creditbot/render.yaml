@@ -12,7 +12,7 @@ services:
       - key: APP_PUBLIC_URL
         sync: false
       - key: WHATSAPP_PROVIDER
-        value: twilio
+        value: kapso
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
@@ -25,13 +25,13 @@ services:
         sync: false
       - key: ADMIN_DASHBOARD_PASSWORD
         sync: false
-      - key: TWILIO_ACCOUNT_SID
+      - key: KAPSO_API_KEY
         sync: false
-      - key: TWILIO_AUTH_TOKEN
+      - key: KAPSO_PHONE_NUMBER_ID
         sync: false
-      - key: TWILIO_WHATSAPP_FROM
+      - key: KAPSO_WEBHOOK_SECRET
         sync: false
-      - key: TWILIO_VALIDATE_SIGNATURE
+      - key: KAPSO_VALIDATE_WEBHOOK_SIGNATURE
         value: "true"
       - key: DEFAULT_COUNTRY_CODE
         value: "593"
@@ -49,12 +49,6 @@ services:
       - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
       - key: ADMIN_DASHBOARD_PASSWORD
-        sync: false
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_WHATSAPP_FROM
         sync: false
       - key: BACKEND_API_URL
         value: https://credibot-uleam-gjj2.onrender.com

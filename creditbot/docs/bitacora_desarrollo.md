@@ -4,7 +4,7 @@ Documento de trabajo que resume **qué se ha construido**, **con qué herramient
 **por qué se eligió cada una** en el proyecto CrediBot (agente conversacional de
 precalificación de crédito por WhatsApp).
 
-> Repositorio: `MantaVIbers/CrediBot-Uleam` · Rama de trabajo: `develop`
+> Repositorio: `MantaVIbers/CrediBot-Uleam` · Rama de trabajo: `main`
 > Despliegue: `https://credibot-uleam-gjj2.onrender.com`
 
 ---
@@ -189,8 +189,8 @@ Commits).
 
 | Herramienta | Qué es | Por qué se usa en CrediBot |
 |---|---|---|
-| **Twilio (WhatsApp)** | Proveedor de mensajería en la nube | Conecta el bot con WhatsApp mediante un webhook, sin integrar directamente la API de Meta. En desarrollo se usa el **Sandbox**. |
-| **Simulador propio** (`/simulate/message`) | Endpoint interno de pruebas | Permite probar TODO el flujo conversacional **sin depender de Twilio**, ideal para demos y pruebas automáticas. |
+| **Kapso (WhatsApp)** | Proveedor de mensajería en la nube | Conecta el bot con WhatsApp mediante API y webhook firmado; gestiona el número y los eventos entrantes. |
+| **Simulador propio** (`/simulate/message`) | Endpoint interno de pruebas | Permite probar TODO el flujo conversacional sin enviar mensajes de WhatsApp, ideal para demos y pruebas automáticas. |
 
 ### Pruebas y calidad
 
@@ -264,18 +264,26 @@ docker run --rm -p 8000:8000 --env-file .env credibot
 | `SUPABASE_URL` | URL base del proyecto Supabase (sin `/rest/v1/`). |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave secreta (server-side) de Supabase. |
 | `DEFAULT_COUNTRY_CODE` | Código de país por defecto (`593`). |
-| `TWILIO_VALIDATE_SIGNATURE` | `true` en producción con Twilio, `false` en local. |
-| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_WHATSAPP_FROM` | Credenciales de Twilio (para WhatsApp real). |
+| `KAPSO_API_KEY` / `KAPSO_PHONE_NUMBER_ID` | Credenciales de Kapso para enviar mensajes por WhatsApp. |
+| `KAPSO_WEBHOOK_SECRET` | Secreto HMAC para validar eventos entrantes de Kapso. |
 | `ADMIN_DASHBOARD_PASSWORD` | Clave del panel Streamlit (solo panel, no el backend). |
 
 > El archivo `.env` **no se versiona** (está en `.gitignore`) porque contiene secretos.
 
 ---
 
+### Migración de WhatsApp a Kapso
+
+- Se sustituyó Twilio/Meta por el proveedor único `KapsoWhatsAppProvider`.
+- El webhook usa el evento nativo `whatsapp.message.received`, admite lotes y valida
+  `X-Webhook-Signature` con HMAC SHA-256.
+- El panel ya no conserva credenciales del canal: responde por el backend, que registra
+  el mensaje y lo envía con Kapso.
+
 ## 8. Próximos pasos
 
-1. Configurar **Twilio** para probar desde WhatsApp real (webhook →
+1. Configurar **Kapso** para probar desde WhatsApp real (webhook →
    `/webhook/whatsapp`).
-2. Fusionar `develop → main` y apuntar Render a `main`.
+2. Validar Render y el panel contra `main`.
 3. (Futuro) Agente IA con tools + RAG sobre políticas de crédito (tablas ya previstas en
    el esquema).

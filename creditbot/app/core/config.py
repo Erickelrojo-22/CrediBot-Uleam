@@ -30,21 +30,13 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-5.5"
     openai_enable_ai: bool = True
 
-    # --- Proveedor de WhatsApp: twilio | meta ---
-    whatsapp_provider: str = "twilio"
-
-    # --- Credenciales de Twilio (WhatsApp) ---
-    twilio_account_sid: str = ""
-    twilio_auth_token: str = ""
-    twilio_whatsapp_from: str = ""
-    twilio_validate_signature: bool = False
-
-    # --- Meta WhatsApp Cloud API ---
-    meta_whatsapp_token: str = ""
-    meta_whatsapp_phone_number_id: str = ""
-    meta_whatsapp_verify_token: str = ""
-    meta_whatsapp_app_secret: str = ""
-    meta_graph_api_version: str = "v21.0"
+    # --- WhatsApp con Kapso ---
+    whatsapp_provider: str = "kapso"
+    kapso_api_key: str = ""
+    kapso_phone_number_id: str = ""
+    kapso_webhook_secret: str = ""
+    kapso_validate_webhook_signature: bool = True
+    kapso_graph_api_version: str = "v24.0"
 
     # --- Configuración regional ---
     default_country_code: str = "593"

@@ -78,10 +78,9 @@ def _patch_dashboard(monkeypatch) -> None:
         "obtener_estado_configuracion",
         lambda: {
             "supabase": True,
-            "twilio": True,
             "backend_api": True,
             "can_reply": True,
-            "reply_mode": "twilio_direct",
+            "reply_mode": "backend_api",
             "backend_url": "http://localhost:8000",
         },
     )

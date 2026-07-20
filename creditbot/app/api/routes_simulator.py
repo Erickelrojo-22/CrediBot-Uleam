@@ -1,4 +1,4 @@
-"""Rutas del simulador para probar el bot sin Twilio."""
+"""Rutas del simulador para probar el bot sin WhatsApp."""
 from fastapi import APIRouter
 
 from app.schemas.conversation import SimulateMessageRequest, SimulateMessageResponse

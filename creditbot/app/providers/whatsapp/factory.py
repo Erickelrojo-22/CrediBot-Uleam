@@ -3,20 +3,17 @@ from functools import lru_cache
 
 from app.core.config import settings
 from app.providers.whatsapp.base import WhatsAppProvider, WhatsAppProviderError
-from app.providers.whatsapp.meta import MetaWhatsAppProvider
-from app.providers.whatsapp.twilio import TwilioWhatsAppProvider
+from app.providers.whatsapp.kapso import KapsoWhatsAppProvider
 
 
 @lru_cache
 def get_whatsapp_provider() -> WhatsAppProvider:
     """Retorna el proveedor configurado en WHATSAPP_PROVIDER."""
-    provider = (settings.whatsapp_provider or "twilio").strip().lower()
-    if provider == "meta":
-        return MetaWhatsAppProvider()
-    if provider == "twilio":
-        return TwilioWhatsAppProvider()
+    provider = (settings.whatsapp_provider or "kapso").strip().lower()
+    if provider == "kapso":
+        return KapsoWhatsAppProvider()
     raise WhatsAppProviderError(
-        f"Proveedor de WhatsApp desconocido: {provider}. Usa 'twilio' o 'meta'."
+        f"Proveedor de WhatsApp desconocido: {provider}. Usa 'kapso'."
     )
 
 

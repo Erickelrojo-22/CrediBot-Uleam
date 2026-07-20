@@ -65,31 +65,42 @@ def extract_kapso_messages(payload: dict[str, Any]) -> list[dict[str, Any]]:
         if not isinstance(event_payload, dict):
             continue
         message = event_payload.get("message") or {}
-        if message.get("type") != "text":
-            continue
-
         phone = normalize_kapso_phone(
             message.get("from")
             or (event_payload.get("conversation") or {}).get("phone_number")
             or (message.get("kapso") or {}).get("phone_number")
             or ""
         )
+        if not phone:
+            continue
+
+        message_type = str(message.get("type") or "unknown")
         body = ((message.get("text") or {}).get("body") or "").strip()
-        if not phone or not body:
+        raw_payload = {
+            "provider": "kapso",
+            "id": message.get("id"),
+            "timestamp": message.get("timestamp"),
+            "type": message_type,
+            "kapso": message.get("kapso") or {},
+            "conversation_id": (event_payload.get("conversation") or {}).get("id"),
+        }
+        if message_type != "text":
+            messages.append(
+                {
+                    "phone": phone,
+                    "reply": "Por favor, envíame tu mensaje como texto. Puedo entenderte mejor cuando escribes.",
+                    "raw_payload": raw_payload,
+                }
+            )
+            continue
+        if not body:
             continue
 
         messages.append(
             {
                 "phone": phone,
                 "message": body,
-                "raw_payload": {
-                    "provider": "kapso",
-                    "id": message.get("id"),
-                    "timestamp": message.get("timestamp"),
-                    "type": message.get("type"),
-                    "kapso": message.get("kapso") or {},
-                    "conversation_id": (event_payload.get("conversation") or {}).get("id"),
-                },
+                "raw_payload": raw_payload,
             }
         )
     return messages

@@ -70,7 +70,7 @@ def _iter_policy_sections() -> list[tuple[str, str, str]]:
     return sections
 
 
-def search_policies(query: str, limit: int = 2) -> list[RagChunk]:
+def _search_local_policies(query: str, limit: int = 2) -> list[RagChunk]:
     """Busca secciones relevantes de políticas usando coincidencia léxica."""
     query_tokens = _tokens(query)
     if not query_tokens:
@@ -84,6 +84,29 @@ def search_policies(query: str, limit: int = 2) -> list[RagChunk]:
             results.append(RagChunk(title=title, source=source, content=content, score=score))
 
     return sorted(results, key=lambda chunk: (-chunk.score, chunk.title))[:limit]
+
+
+def search_policies(query: str, limit: int = 3) -> list[RagChunk]:
+    """Busca con pgvector; si no está indexado, conserva el RAG local."""
+    try:
+        from app.rag.retriever import semantic_search
+
+        rows = semantic_search(query, limit)
+        chunks = [
+            RagChunk(
+                title=str((row.get("metadata") or {}).get("title") or "Política"),
+                source=str((row.get("metadata") or {}).get("source") or "Supabase"),
+                content=str(row.get("content") or ""),
+                score=int(float(row.get("similarity") or 0) * 100),
+            )
+            for row in rows
+            if row.get("content")
+        ]
+        if chunks:
+            return chunks
+    except Exception:
+        pass
+    return _search_local_policies(query, limit)
 
 
 def build_policy_answer(query: str) -> tuple[str, list[RagChunk]]:

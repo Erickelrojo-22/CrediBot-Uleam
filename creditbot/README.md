@@ -94,6 +94,9 @@ pytest -q
 
 ## Documentación
 
+- `docs/agno_setup.md`: uso controlado de Agno y tools.
+- `docs/rag_setup.md`: ingesta de políticas y pgvector.
+- `docs/diagramas/`: diagramas Mermaid de arquitectura y flujo.
 - [`docs/flujo_conversacional.md`](docs/flujo_conversacional.md)
 - [`docs/endpoints.md`](docs/endpoints.md)
 - [`docs/kapso_setup.md`](docs/kapso_setup.md)

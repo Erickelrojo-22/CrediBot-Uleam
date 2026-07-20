@@ -1,5 +1,7 @@
 # CrediBot — Lista de Tareas del Proyecto
 
+> Nota de actualización v2: este documento conserva el historial de la primera versión. La integración vigente de WhatsApp es **Kapso**, no Twilio; consulta `creditbot/docs/kapso_setup.md` para la configuración actual.
+
 Documento consolidado de tareas basado en:
 
 - `contexto aplicacion/creditbot_desarrollo_tareas_fastapi_supabase.md` (backend FastAPI + Supabase)

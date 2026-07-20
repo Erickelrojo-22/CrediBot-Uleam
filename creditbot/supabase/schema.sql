@@ -150,6 +150,9 @@ create table if not exists rag_documents (
     created_at timestamptz not null default now()
 );
 
+create unique index if not exists rag_documents_source_path_key
+    on rag_documents (source_path);
+
 -- Chunks con embeddings. Dimensión 1536 = modelo text-embedding-3-small.
 create table if not exists rag_chunks (
     id uuid primary key default uuid_generate_v4(),
@@ -163,3 +166,17 @@ create table if not exists rag_chunks (
 -- Índice para búsqueda por similitud coseno (opcional, mejora el rendimiento).
 create index if not exists rag_chunks_embedding_idx
     on rag_chunks using ivfflat (embedding vector_cosine_ops) with (lists = 100);
+
+create or replace function match_rag_chunks(
+    query_embedding vector(1536),
+    match_count integer default 3
+)
+returns table (content text, metadata jsonb, similarity float)
+language sql stable
+as $$
+    select content, metadata, 1 - (embedding <=> query_embedding) as similarity
+    from rag_chunks
+    where embedding is not null
+    order by embedding <=> query_embedding
+    limit match_count;
+$$;

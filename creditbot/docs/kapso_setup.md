@@ -40,6 +40,10 @@ del evento, aunque para la demostración se recomienda no activar buffering.
 
 ## Comprobación
 
+## Mensajes no-texto
+
+Si una persona envía audio, imagen, documento, video o sticker, CrediBot responde pidiendo que escriba el mensaje como texto. Así el estado de la precalificación no se altera ni el usuario queda sin respuesta.
+
 1. Consulta `GET /health/whatsapp`: debe indicar `provider: kapso` y `configured: true`.
 2. Envía `Hola` al número conectado en Kapso.
 3. Verifica que CrediBot responda y que el turno quede en Supabase.

@@ -67,10 +67,12 @@ async def receive_whatsapp_webhook(request: Request):
         return {"status": "ignored"}
 
     for incoming in extract_kapso_messages(payload):
-        reply = process_message(
-            incoming["phone"],
-            incoming["message"],
-            raw_payload=incoming["raw_payload"],
-        )
+        reply = incoming.get("reply")
+        if not reply:
+            reply = process_message(
+                incoming["phone"],
+                incoming["message"],
+                raw_payload=incoming["raw_payload"],
+            )
         _send_reply(incoming["phone"], reply)
     return {"status": "ok"}

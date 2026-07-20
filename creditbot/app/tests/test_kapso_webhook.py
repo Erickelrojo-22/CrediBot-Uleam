@@ -75,3 +75,31 @@ def test_webhook_kapso_rechaza_firma_invalida(monkeypatch):
     )
 
     assert response.status_code == 403
+
+
+def test_webhook_kapso_responde_a_audio_sin_alterar_el_flujo(monkeypatch):
+    from app.api import routes_webhook
+
+    secret = "kapso-webhook-test"
+    monkeypatch.setattr(routes_webhook.settings, "kapso_webhook_secret", secret)
+    monkeypatch.setattr(routes_webhook.settings, "kapso_validate_webhook_signature", True)
+    process_calls = []
+    monkeypatch.setattr(
+        routes_webhook,
+        "process_message",
+        lambda *args, **kwargs: process_calls.append((args, kwargs)),
+    )
+    sent = []
+    monkeypatch.setattr(routes_webhook, "send_text_message", lambda phone, message: sent.append((phone, message)))
+    payload = {"message": {"id": "wamid.audio", "from": "593999000111", "type": "audio"}}
+    raw_body = json.dumps(payload).encode("utf-8")
+
+    response = TestClient(app).post(
+        "/webhook/whatsapp",
+        content=raw_body,
+        headers={"X-Webhook-Event": "whatsapp.message.received", "X-Webhook-Signature": _signature(secret, raw_body)},
+    )
+
+    assert response.status_code == 200
+    assert process_calls == []
+    assert sent == [("593999000111", "Por favor, envíame tu mensaje como texto. Puedo entenderte mejor cuando escribes.")]

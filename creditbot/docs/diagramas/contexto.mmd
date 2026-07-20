@@ -1,0 +1,7 @@
+flowchart LR
+    U[Usuario por WhatsApp] --> K[Kapso]
+    K --> C[CrediBot]
+    A[Asesor humano] --> D[Dashboard Streamlit]
+    D --> C
+    C --> S[(Supabase)]
+    C --> O[OpenAI]

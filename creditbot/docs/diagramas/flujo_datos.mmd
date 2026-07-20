@@ -1,0 +1,14 @@
+sequenceDiagram
+    participant U as Usuario
+    participant K as Kapso
+    participant F as FastAPI
+    participant A as Agno/Reglas
+    participant S as Supabase
+    U->>K: Mensaje WhatsApp
+    K->>F: Webhook firmado
+    F->>S: Historial y estado
+    F->>A: Procesar mensaje
+    A->>S: Tools/RAG cuando aplica
+    A-->>F: Respuesta controlada
+    F->>K: Enviar respuesta
+    K-->>U: Mensaje WhatsApp

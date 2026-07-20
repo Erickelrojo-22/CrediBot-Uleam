@@ -1,0 +1,9 @@
+flowchart TB
+    K[Kapso webhook] --> F[FastAPI / CrediBot]
+    F --> A[Agno Agent]
+    A --> T[Tools y RAG]
+    T --> S[(Supabase + pgvector)]
+    F --> R[(Redis)]
+    A --> O[OpenAI]
+    D[Streamlit Dashboard] --> F
+    D --> S

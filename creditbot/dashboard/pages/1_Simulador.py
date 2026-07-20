@@ -21,6 +21,13 @@ def _new_demo_phone() -> str:
     return f"59399{secrets.randbelow(100_000_000):08d}"
 
 
+def _start_new_conversation() -> None:
+    """Restablece la simulación antes de que Streamlit cree los widgets."""
+    st.session_state["sim_phone"] = _new_demo_phone()
+    st.session_state["sim_messages"] = []
+    st.session_state.pop("sim_error", None)
+
+
 def _render_history(messages: list[dict[str, str]]) -> str:
     if not messages:
         body = (
@@ -99,11 +106,11 @@ with phone_col:
         help="Cada identificador conserva su propio estado en Supabase.",
     )
 with action_col:
-    if st.button("Nueva conversación", width="stretch"):
-        st.session_state["sim_phone"] = _new_demo_phone()
-        st.session_state["sim_messages"] = []
-        st.session_state.pop("sim_error", None)
-        st.rerun()
+    st.button(
+        "Nueva conversación",
+        width="stretch",
+        on_click=_start_new_conversation,
+    )
 
 if not backend["online"]:
     if st.button("Reintentar conexión", width="stretch"):

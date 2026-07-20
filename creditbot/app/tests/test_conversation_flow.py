@@ -331,7 +331,39 @@ def test_destino_hola_se_rechaza(
 
 
 @patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kw: kw["base_reply"])
-@patch("app.services.conversation_service.credibot_agent.render_free_text_retry", side_effect=lambda **kw: kw["base_reply"])
+@patch("app.services.conversation_service.credit_repository.update_purpose")
+@patch("app.services.conversation_service.credit_repository.get_draft_request")
+@patch("app.services.conversation_service.message_repository.save_outbound_message")
+@patch("app.services.conversation_service.message_repository.save_inbound_message")
+@patch("app.services.conversation_service.conversation_repository.update_last_message")
+@patch("app.services.conversation_service.conversation_repository.update_state")
+@patch("app.services.conversation_service.conversation_repository.get_or_create_active_conversation")
+@patch("app.services.conversation_service.user_repository.get_or_create_user")
+def test_destino_libre_avanza_sin_agente_secundario(
+    mock_user,
+    mock_conversation,
+    mock_update_state,
+    _mock_last_message,
+    _mock_inbound,
+    _mock_outbound,
+    mock_get_draft,
+    mock_update_purpose,
+    _mock_openai,
+):
+    """Un producto libre debe contestar de inmediato y solicitar el monto."""
+    mock_user.return_value = {**_base_user(), "full_name": "Ana Lucía"}
+    mock_conversation.return_value = _base_conversation(ASK_PURPOSE)
+    mock_get_draft.return_value = _draft_request()
+
+    reply = process_message("593999999999", "Comprar un yate")
+
+    assert "monto" in reply.lower()
+    mock_update_purpose.assert_called_once_with(REQUEST_ID, "Comprar un yate")
+    mock_update_state.assert_called_once_with(CONVERSATION_ID, ASK_AMOUNT)
+    _mock_openai.assert_not_called()
+
+
+@patch("app.services.conversation_service.openai_agent.render_reply", side_effect=lambda **kw: kw["base_reply"])
 @patch("app.services.conversation_service.handoff_service.register_handoff")
 @patch("app.services.conversation_service.message_repository.save_outbound_message")
 @patch("app.services.conversation_service.message_repository.save_inbound_message")
@@ -347,7 +379,6 @@ def test_texto_libre_en_monto_repite_el_dato_sin_derivar(
     _mock_inbound,
     _mock_outbound,
     mock_handoff,
-    _mock_agent_retry,
     _mock_openai,
 ):
     """Una explicación de negocio no debe contarse como monto inválido."""

@@ -21,7 +21,7 @@ from app.core.constants import (
     START,
     VERIFY_IDENTITY,
 )
-from app.agent import credibot_agent, openai_agent, state_manager
+from app.agent import openai_agent, state_manager
 from app.domain import credit_rules
 from app.domain.cedula_validator import mask_cedula
 from app.repositories import (
@@ -721,17 +721,11 @@ def process_message(phone: str, text: str, raw_payload: dict[str, Any] | None = 
     if next_state not in {HANDOFF_REQUESTED, FINISHED, NOT_ELIGIBLE}:
         response = message_service.with_handoff_hint(response)
 
-    if state_manager.is_free_text_out_of_context(next_state, text) and response.startswith(
-        "Entiendo lo que nos comentas."
-    ):
-        response = credibot_agent.render_free_text_retry(
-            base_reply=response,
-            state=next_state,
-            user_message=text,
-            conversation_id=conversation_id,
-            user_id=user_id,
-        )
-    else:
+    # Una transición (por ejemplo, destino -> monto) ya fue interpretada y
+    # validada. Respondemos enseguida con el flujo seguro, sin una llamada de
+    # red a IA que pueda demorar el webhook de WhatsApp. La IA se mantiene para
+    # preguntas que no cambian de paso (RAG, explicaciones y reintentos).
+    if next_state == state:
         response = openai_agent.render_reply(
             base_reply=response,
             state=next_state,

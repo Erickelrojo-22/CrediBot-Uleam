@@ -175,14 +175,17 @@ def _render_chat_messages(selected_case: pd.Series) -> None:
         return
 
     messages_html = "\n".join(_message_html(item) for item in messages)
-    st.markdown(
-        f"""
+    chat_html = f"""
         <div class="cb-chat-window">
           {messages_html}
         </div>
-        """,
-        unsafe_allow_html=True,
-    )
+        """
+    # st.html renderiza las burbujas como HTML real; en algunas versiones de
+    # Streamlit, st.markdown mostraba el código fuente dentro de fragments.
+    if hasattr(st, "html"):
+        st.html(chat_html)
+    else:  # Compatibilidad para instalaciones antiguas del dashboard.
+        st.markdown(chat_html, unsafe_allow_html=True)
 
 
 def _render_reply_form(selected_case: pd.Series) -> None:
@@ -193,6 +196,10 @@ def _render_reply_form(selected_case: pd.Series) -> None:
         return
 
     st.markdown('<div class="cb-chat-compose">', unsafe_allow_html=True)
+    st.caption(
+        "WhatsApp permite mensajes libres durante las 24 horas posteriores al "
+        "último mensaje del cliente. Después se requiere una plantilla aprobada."
+    )
     with st.form(f"human_reply_form_{context['case_id']}", clear_on_submit=True):
         reply = st.text_area(
             "Mensaje al cliente",
@@ -215,7 +222,15 @@ def _render_reply_form(selected_case: pd.Series) -> None:
         except DashboardConfigError as exc:
             st.warning(str(exc))
         except Exception as exc:
-            st.error(f"No se pudo enviar la respuesta: {exc}")
+            detail = str(exc)
+            if "outside the 24-hour window" in detail:
+                st.warning(
+                    "No se envió el mensaje porque la ventana de WhatsApp de 24 horas "
+                    "ya cerró. Pide al cliente que escriba nuevamente o usa una plantilla "
+                    "aprobada en Kapso para reabrir la conversación."
+                )
+            else:
+                st.error(f"No se pudo enviar la respuesta: {exc}")
         else:
             st.success("Respuesta enviada por WhatsApp.")
             obtener_contadores_navegacion.clear()
